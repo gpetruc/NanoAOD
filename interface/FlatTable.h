@@ -1,0 +1,108 @@
+#ifndef PhysicsTools_NanoAOD_FlatTable_h
+#define PhysicsTools_NanoAOD_FlatTable_h
+
+#include <cstdint>
+#include <vector>
+#include <string>
+#include <boost/range/sub_range.hpp>
+#include <FWCore/Utilities/interface/Exception.h>
+
+class FlatTable {
+  public:
+    enum ColumnType { FloatColumn, IntColumn, UInt8Column }; // We could have other Float types with reduced mantissa, and similar
+
+    FlatTable(unsigned int size) : size_(size) {}
+    ~FlatTable() {}
+
+    unsigned int nColumns() const { return columns_.size(); };
+    unsigned int nRows() const { return size_; };
+    unsigned int size() const { return size_; }
+
+    const std::string & columnName(unsigned int col) const { return columns_[col].name; }
+    int columnIndex(const std::string & name) const ; 
+
+    ColumnType columnType(unsigned int col) const { return columns_[col].type; }
+
+    /// get a column by index (const)
+    template<typename T>
+    boost::sub_range<const std::vector<T>> columnData(unsigned int column) const { 
+         auto begin = beginData<T>(column);
+         return boost::sub_range<const std::vector<T>>(begin, begin+size_);
+    }
+
+    /// get a column by index (non-const)
+    template<typename T>
+    boost::sub_range<std::vector<T>> columnData(unsigned int column) { 
+         auto begin = beginData<T>(column);
+         return boost::sub_range<std::vector<T>>(begin, begin+size_);
+    }
+
+    template<typename T, typename C = std::vector<T>>
+    void addColumn(const std::string & name, const C & values, ColumnType type = defaultColumnType<T>()) {
+        if (columnIndex(name) != -1) throw cms::Exception("LogicError", "Duplicated column: "+name); 
+        if (values.size() != size()) throw cms::Exception("LogicError", "Mismatched size for "+name); 
+        check_type<T>(type); // throws if type is wrong
+        auto & vec = bigVector<T>();
+        columns_.emplace_back({name,type,vec.size()});
+        vec.insert(vec.end(), values.begin(), values.end());
+    }
+  
+    template<typename T> static ColumnType defaultColumnType() { throw cms::Exception("unsupported type"); }
+
+  private:
+     struct Column {
+        std::string name;
+        ColumnType type;
+        unsigned int firstIndex;
+     };
+
+     template<typename T>
+     typename std::vector<T>::const_iterator beginData(unsigned int column) const {
+         const Column & col = columns_[column];
+         check_type<T>(col.type); // throws if type is wrong
+         return bigVector<T>().begin() + col.firstIndex;
+     }
+     template<typename T>
+     typename std::vector<T>::iterator beginData(unsigned int column) const {
+         const Column & col = columns_[column];
+         check_type<T>(col.type); // throws if type is wrong
+         return bigVector<T>().begin() + col.firstIndex;
+     }
+
+     template<typename T>
+     const std::vector<T> & bigVector() const { throw cms::Exception("unsupported type"); }
+     template<typename T>
+     std::vector<T> & bigVector() { throw cms::Exception("unsupported type"); }
+
+
+     const unsigned int size_;
+     std::vector<Column> columns_;
+     std::vector<float> floats_;
+     std::vector<int> ints_;
+     std::vector<uint8_t> uint8s_;
+
+     template<typename T> 
+     static void check_type(FlatTable::ColumnType type) { throw cms::Exception("unsupported type"); }
+};
+
+template<> inline void FlatTable::check_type<float>(FlatTable::ColumnType type) {
+     if (type != FlatTable::FloatColumn) throw cms::Exception("mismatched type");
+}
+template<> inline void FlatTable::check_type<int>(FlatTable::ColumnType type) {
+     if (type != FlatTable::IntColumn) throw cms::Exception("mismatched type");
+}
+template<> inline void FlatTable::check_type<uint8_t>(FlatTable::ColumnType type) {
+     if (type != FlatTable::UInt8Column) throw cms::Exception("mismatched type");
+}
+
+
+
+template<> inline const std::vector<float>   & FlatTable::bigVector<float>()   const { return floats_; }
+template<> inline const std::vector<int>     & FlatTable::bigVector<int>()     const { return ints_; }
+template<> inline const std::vector<uint8_t> & FlatTable::bigVector<uint8_t>() const { return uint8s_; }
+template<> inline std::vector<float>   & FlatTable::bigVector<float>()   { return floats_; }
+template<> inline std::vector<int>     & FlatTable::bigVector<int>()     { return ints_; }
+template<> inline std::vector<uint8_t> & FlatTable::bigVector<uint8_t>() { return uint8s_; }
+
+
+#endif
