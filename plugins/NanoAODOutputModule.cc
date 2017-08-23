@@ -91,68 +91,62 @@ private:
             if (!desc->productInstanceName().empty()) pname += "_"+desc->productInstanceName();
             const edm::ParameterSet & pset = mainPSet.getParameter<edm::ParameterSet>(pname);
             m_baseName = pset.getParameter<std::string>("baseName");
-            m_buffer = FlatTable(pset.getParameter<uint32_t>("maxEntries"));
             typedef std::vector<std::string> vstring;
             if (pset.existsAs<vstring>("floats")) {
-                std::vector<float> zeros(m_buffer.size());
-                for (const std::string & fvar : pset.getParameter<vstring>("floats")) {
-                    m_buffer.addColumn<float>(fvar, zeros, FlatTable::FloatColumn);
+                for (const std::string & var : pset.getParameter<vstring>("floats")) {
+                    m_floatBranches.emplace_back(var, nullptr);
                 }
             }
             if (pset.existsAs<vstring>("ints")) {
-                std::vector<int> zeros(m_buffer.size());
-                for (const std::string & fvar : pset.getParameter<vstring>("ints")) {
-                    m_buffer.addColumn<int>(fvar, zeros, FlatTable::IntColumn);
+                for (const std::string & var : pset.getParameter<vstring>("ints")) {
+                    m_intBranches.emplace_back(var, nullptr);
                 }
             }
             if (pset.existsAs<vstring>("uint8s")) {
-                std::vector<uint8_t> zeros(m_buffer.size());
-                for (const std::string & fvar : pset.getParameter<vstring>("uint8s")) {
-                    m_buffer.addColumn<uint8_t>(fvar, zeros, FlatTable::UInt8Column);
+                for (const std::string & var : pset.getParameter<vstring>("uint8s")) {
+                    m_uint8Branches.emplace_back(var, nullptr);
                 }
             }
         }
         void branch(TTree &tree) {
             tree.Branch(("n"+m_baseName).c_str(), & m_counter, ("n"+m_baseName + "/i").c_str());
             std::string varsize = "[n" + m_baseName + "]";
-            for (unsigned int i = 0, n = m_buffer.nColumns(); i < n; ++i) {
-                std::string branchName = m_baseName + "_" + m_buffer.columnName(i);
-                switch(m_buffer.columnType(i)) {
-                    case FlatTable::FloatColumn: tree.Branch(branchName.c_str(), & m_buffer.columnData<float>(i).front(),   (branchName + varsize + "/F").c_str()); break;
-                    case FlatTable::IntColumn:   tree.Branch(branchName.c_str(), & m_buffer.columnData<int  >(i).front(),   (branchName + varsize + "/I").c_str()); break;
-                    case FlatTable::UInt8Column: tree.Branch(branchName.c_str(), & m_buffer.columnData<uint8_t>(i).front(), (branchName + varsize + "/b").c_str()); break;
-                }
+            for (auto & pair : m_floatBranches) {
+                std::string branchName = m_baseName + "_" + pair.first;
+                pair.second = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/F").c_str());
+            }
+            for (auto & pair : m_intBranches) {
+                std::string branchName = m_baseName + "_" + pair.first;
+                pair.second = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/I").c_str());
+            }
+            for (auto & pair : m_uint8Branches) {
+                std::string branchName = m_baseName + "_" + pair.first;
+                pair.second = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/b").c_str());
             }
         }
         void fill(const edm::EventForOutput &iEvent) {
             edm::Handle<FlatTable> handle;
             iEvent.getByToken(m_token, handle);
             const FlatTable & tab = *handle;
-            m_counter = std::min(tab.size(), m_buffer.size());
-            for (unsigned int i = 0, n = m_buffer.nColumns(); i < n; ++i) {
-                switch(m_buffer.columnType(i)) {
-                    case FlatTable::FloatColumn: fillColumn<float  >(i, tab); break;
-                    case FlatTable::IntColumn:   fillColumn<int    >(i, tab); break;
-                    case FlatTable::UInt8Column: fillColumn<uint8_t>(i, tab, 0); break;
-                }
-            }
+            m_counter = tab.size();
+            for (auto & pair : m_floatBranches) fillColumn<float>(pair, tab);
+            for (auto & pair : m_intBranches) fillColumn<int>(pair, tab);
+            for (auto & pair : m_uint8Branches) fillColumn<uint8_t>(pair, tab);
         }
         template<typename T>
-        void fillColumn(int col, const FlatTable & tab, T defval=-99) {
-            int idx = tab.columnIndex(m_buffer.columnName(col));
-            if (idx == -1) throw cms::Exception("LogicError", "Missing column in input for "+m_baseName+"_"+m_buffer.columnName(col));
-            if (tab.columnType(idx) != m_buffer.columnType(col)) throw cms::Exception("LogicError", "Column type mismatch for "+m_baseName+"_"+m_buffer.columnName(col));
-            auto out = m_buffer.columnData<T>(col);
-            auto  in = tab.columnData<T>(idx);
-            std::copy_n(in.begin(), m_counter, out.begin());
-            std::fill(out.begin()+m_counter, out.end(), defval);
+        void fillColumn(std::pair<std::string, TBranch *> & pair, const FlatTable & tab) {
+            int idx = tab.columnIndex(pair.first);
+            if (idx == -1) throw cms::Exception("LogicError", "Missing column in input for "+m_baseName+"_"+pair.first);
+            pair.second->SetAddress( const_cast<T *>(& tab.columnData<T>(idx).front() ) ); // SetAddress should take a const * !
         }
      private:
         edm::EDGetToken m_token;
         std::string  m_baseName;
         unsigned int m_maxEntries;
-        FlatTable    m_buffer;
         UInt_t       m_counter;
+        std::vector<std::pair<std::string,TBranch *>> m_floatBranches;
+        std::vector<std::pair<std::string,TBranch *>>   m_intBranches;
+        std::vector<std::pair<std::string,TBranch *>> m_uint8Branches;
   };
   std::vector<TableOutputBranches> m_tables;
 };

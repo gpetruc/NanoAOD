@@ -34,13 +34,11 @@ process.out = cms.OutputModule("NanoAODOutputModule",
     branches = cms.PSet(
         muonTable = cms.PSet(
             baseName = cms.string("Muon"),
-            maxEntries = cms.uint32(6),
             floats = cms.vstring(process.muonTable.floats.parameterNames_()),
             ints = cms.vstring(process.muonTable.ints.parameterNames_()),
         ),
         jetTable = cms.PSet(
             baseName = cms.string("Jet"),
-            maxEntries = cms.uint32(20),
             floats = cms.vstring(process.jetTable.floats.parameterNames_()),
         ),
     )
