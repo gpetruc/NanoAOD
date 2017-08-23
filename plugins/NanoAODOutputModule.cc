@@ -28,6 +28,9 @@
 #include "FWCore/Utilities/interface/GlobalIdentifier.h"
 #include "FWCore/Utilities/interface/Digest.h"
 
+#include "DataFormats/Provenance/interface/BranchDescription.h"
+#include "PhysicsTools/NanoAOD/interface/FlatTable.h"
+
 class NanoAODOutputModule : public edm::one::OutputModule<> {
 public:
   NanoAODOutputModule(edm::ParameterSet const& pset);
@@ -48,6 +51,7 @@ private:
   edm::JobReport::Token m_jrToken;
   std::unique_ptr<TFile> m_file;
   std::unique_ptr<TTree> m_tree, m_lumiTree;
+  edm::ParameterSet branchPSet;
 
   class CommonEventBranches {
      public:
@@ -76,6 +80,81 @@ private:
      private:
          UInt_t m_run; UInt_t m_luminosityBlock;
   } m_commonLumiBranches;
+
+  class TableOutputBranches {
+     public:
+        TableOutputBranches(const edm::BranchDescription *desc, const edm::EDGetToken & token, const edm::ParameterSet &mainPSet) :
+            m_token(token)
+        {
+            if (desc->className() != "FlatTable") throw cms::Exception("Configuration", "NanoAODOutputModule can only write out FlatTable objects");
+            std::string pname = desc->moduleLabel();
+            if (!desc->productInstanceName().empty()) pname += "_"+desc->productInstanceName();
+            const edm::ParameterSet & pset = mainPSet.getParameter<edm::ParameterSet>(pname);
+            m_baseName = pset.getParameter<std::string>("baseName");
+            m_buffer = FlatTable(pset.getParameter<uint32_t>("maxEntries"));
+            typedef std::vector<std::string> vstring;
+            if (pset.existsAs<vstring>("floats")) {
+                std::vector<float> zeros(m_buffer.size());
+                for (const std::string & fvar : pset.getParameter<vstring>("floats")) {
+                    m_buffer.addColumn<float>(fvar, zeros, FlatTable::FloatColumn);
+                }
+            }
+            if (pset.existsAs<vstring>("ints")) {
+                std::vector<int> zeros(m_buffer.size());
+                for (const std::string & fvar : pset.getParameter<vstring>("ints")) {
+                    m_buffer.addColumn<int>(fvar, zeros, FlatTable::IntColumn);
+                }
+            }
+            if (pset.existsAs<vstring>("uint8s")) {
+                std::vector<uint8_t> zeros(m_buffer.size());
+                for (const std::string & fvar : pset.getParameter<vstring>("uint8s")) {
+                    m_buffer.addColumn<uint8_t>(fvar, zeros, FlatTable::UInt8Column);
+                }
+            }
+        }
+        void branch(TTree &tree) {
+            tree.Branch(("n"+m_baseName).c_str(), & m_counter, ("n"+m_baseName + "/i").c_str());
+            std::string varsize = "[n" + m_baseName + "]";
+            for (unsigned int i = 0, n = m_buffer.nColumns(); i < n; ++i) {
+                std::string branchName = m_baseName + "_" + m_buffer.columnName(i);
+                switch(m_buffer.columnType(i)) {
+                    case FlatTable::FloatColumn: tree.Branch(branchName.c_str(), & m_buffer.columnData<float>(i).front(),   (branchName + varsize + "/F").c_str()); break;
+                    case FlatTable::IntColumn:   tree.Branch(branchName.c_str(), & m_buffer.columnData<int  >(i).front(),   (branchName + varsize + "/I").c_str()); break;
+                    case FlatTable::UInt8Column: tree.Branch(branchName.c_str(), & m_buffer.columnData<uint8_t>(i).front(), (branchName + varsize + "/b").c_str()); break;
+                }
+            }
+        }
+        void fill(const edm::EventForOutput &iEvent) {
+            edm::Handle<FlatTable> handle;
+            iEvent.getByToken(m_token, handle);
+            const FlatTable & tab = *handle;
+            m_counter = std::min(tab.size(), m_buffer.size());
+            for (unsigned int i = 0, n = m_buffer.nColumns(); i < n; ++i) {
+                switch(m_buffer.columnType(i)) {
+                    case FlatTable::FloatColumn: fillColumn<float  >(i, tab); break;
+                    case FlatTable::IntColumn:   fillColumn<int    >(i, tab); break;
+                    case FlatTable::UInt8Column: fillColumn<uint8_t>(i, tab, 0); break;
+                }
+            }
+        }
+        template<typename T>
+        void fillColumn(int col, const FlatTable & tab, T defval=-99) {
+            int idx = tab.columnIndex(m_buffer.columnName(col));
+            if (idx == -1) throw cms::Exception("LogicError", "Missing column in input for "+m_baseName+"_"+m_buffer.columnName(col));
+            if (tab.columnType(idx) != m_buffer.columnType(col)) throw cms::Exception("LogicError", "Column type mismatch for "+m_baseName+"_"+m_buffer.columnName(col));
+            auto out = m_buffer.columnData<T>(col);
+            auto  in = tab.columnData<T>(idx);
+            std::copy_n(in.begin(), m_counter, out.begin());
+            std::fill(out.begin()+m_counter, out.end(), defval);
+        }
+     private:
+        edm::EDGetToken m_token;
+        std::string  m_baseName;
+        unsigned int m_maxEntries;
+        FlatTable    m_buffer;
+        UInt_t       m_counter;
+  };
+  std::vector<TableOutputBranches> m_tables;
 };
 
 
@@ -94,7 +173,8 @@ NanoAODOutputModule::NanoAODOutputModule(edm::ParameterSet const& pset):
   edm::one::OutputModuleBase::OutputModuleBase(pset),
   edm::one::OutputModule<>(pset),
   m_fileName(pset.getUntrackedParameter<std::string>("fileName")),
-  m_logicalFileName(pset.getUntrackedParameter<std::string>("logicalFileName"))
+  m_logicalFileName(pset.getUntrackedParameter<std::string>("logicalFileName")),
+  branchPSet(pset.getParameter<edm::ParameterSet>("branches"))
 {
 }
 
@@ -110,6 +190,7 @@ NanoAODOutputModule::write(edm::EventForOutput const& iEvent) {
   jr->eventWrittenToFile(m_jrToken, iEvent.id().run(), iEvent.id().event());
 
   m_commonBranches.fill(iEvent.id());
+  for (auto & t : m_tables) t.fill(iEvent);
   m_tree->Fill();
 }
 
@@ -150,11 +231,18 @@ NanoAODOutputModule::openFile(edm::FileBlock const&) {
                                    );
 
   /* Setup file structure here */
+  m_tables.clear();
+  const auto & keeps = keptProducts()[0];
+  m_tables.reserve(keeps.size());
+  for (const auto & keep : keeps) {
+      m_tables.emplace_back(keep.first, keep.second, branchPSet);
+  }
 
   // create the trees
   m_tree.reset(new TTree("Events","Events"));
   m_tree->SetAutoSave(std::numeric_limits<Long64_t>::max());
   m_commonBranches.branch(*m_tree);
+  for (auto & t : m_tables) t.branch(*m_tree);
 
   m_lumiTree.reset(new TTree("LuminosityBlocks","LuminosityBlocks"));
   m_lumiTree->SetAutoSave(std::numeric_limits<Long64_t>::max());
@@ -179,7 +267,7 @@ NanoAODOutputModule::fillDescriptions(edm::ConfigurationDescriptions& descriptio
   desc.addUntracked<std::string>("logicalFileName","");
 
   //replace with whatever you want to get from the EDM by default
-  const std::vector<std::string> keep = {"drop *", "keep *edmTable*_*_*_*"};
+  const std::vector<std::string> keep = {"drop *", "keep FlatTable_*_*_*"};
   edm::OutputModule::fillDescription(desc, keep);
   
   //Used by Workflow management for their own meta data
@@ -187,6 +275,10 @@ NanoAODOutputModule::fillDescriptions(edm::ConfigurationDescriptions& descriptio
   dataSet.setAllowAnything();
   desc.addUntracked<edm::ParameterSetDescription>("dataset", dataSet)
     ->setComment("PSet is only used by Data Operations and not by this module.");
+  
+  edm::ParameterSetDescription branchSet;
+  branchSet.setAllowAnything();
+  desc.add<edm::ParameterSetDescription>("branches", branchSet);
 
   descriptions.addDefault(desc);
 

@@ -68,7 +68,7 @@ class FlatTable {
          return bigVector<T>().begin() + col.firstIndex;
      }
      template<typename T>
-     typename std::vector<T>::iterator beginData(unsigned int column) const {
+     typename std::vector<T>::iterator beginData(unsigned int column) {
          const Column & col = columns_[column];
          check_type<T>(col.type); // throws if type is wrong
          return bigVector<T>().begin() + col.firstIndex;

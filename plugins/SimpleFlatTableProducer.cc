@@ -15,8 +15,7 @@ public:
 
 SimpleFlatTableProducer( edm::ParameterSet const & params ):
     src_(consumes<edm::View<T>>( params.getParameter<edm::InputTag>("src") )),
-    cut_( params.getParameter<std::string>("cut"), true ),
-    maxEntries_( params.getParameter<uint32_t>("maxEntries") )
+    cut_( params.getParameter<std::string>("cut"), true )
     {
         if (params.existsAs<edm::ParameterSet>("floats")) {
             edm::ParameterSet const & floatsPSet = params.getParameter<edm::ParameterSet>("floats");
@@ -43,21 +42,19 @@ SimpleFlatTableProducer( edm::ParameterSet const & params ):
     virtual ~SimpleFlatTableProducer() {}
    
     virtual void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override {
-        auto out = std::make_unique<FlatTable>(maxEntries_);
         
         edm::Handle<edm::View<T>> src;
         iEvent.getByToken(src_, src);
 
         std::vector<const T *> selobjs;
         for (const auto & obj : *src) {
-            if (cut_(obj)) {
-                selobjs.push_back(&obj);
-                if (selobjs.size() == maxEntries_) break;
-            }
+            if (cut_(obj)) selobjs.push_back(&obj);
         }
         unsigned int nsel = selobjs.size();
 
-        std::vector<float> floats(maxEntries_, -99);
+        auto out = std::make_unique<FlatTable>(nsel);
+
+        std::vector<float> floats(nsel);
         for (const auto & pair : floats_) {
             for (unsigned int i = 0; i < nsel; ++i) {
                 floats[i] = pair.second(*selobjs[i]);
@@ -65,7 +62,7 @@ SimpleFlatTableProducer( edm::ParameterSet const & params ):
             out->addColumn<float>(pair.first, floats, FlatTable::FloatColumn);
         }
 
-        std::vector<int> ints(maxEntries_, -99);
+        std::vector<int> ints(nsel);
         for (const auto & pair : ints_) {
             for (unsigned int i = 0; i < nsel; ++i) {
                 ints[i] = pair.second(*selobjs[i]);
@@ -73,7 +70,7 @@ SimpleFlatTableProducer( edm::ParameterSet const & params ):
             out->addColumn<int>(pair.first, ints, FlatTable::IntColumn);
         }
 
-        std::vector<uint8_t> bools(maxEntries_, 0);
+        std::vector<uint8_t> bools(nsel);
         for (const auto & pair : bools_) {
             for (unsigned int i = 0; i < nsel; ++i) {
                 bools[i] = pair.second(*selobjs[i]);
@@ -88,7 +85,6 @@ SimpleFlatTableProducer( edm::ParameterSet const & params ):
 protected:
     const edm::EDGetTokenT<edm::View<T>> src_;
     const StringCutObjectSelector<T> cut_;
-    const unsigned int maxEntries_;
     
     std::vector<std::pair<std::string,StringObjectFunction<T>>> floats_; 
     std::vector<std::pair<std::string,StringObjectFunction<T>>> ints_; 
