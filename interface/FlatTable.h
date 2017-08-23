@@ -11,6 +11,7 @@ class FlatTable {
   public:
     enum ColumnType { FloatColumn, IntColumn, UInt8Column }; // We could have other Float types with reduced mantissa, and similar
 
+    FlatTable() : size_(0) {}
     FlatTable(unsigned int size) : size_(size) {}
     ~FlatTable() {}
 
@@ -43,18 +44,22 @@ class FlatTable {
         if (values.size() != size()) throw cms::Exception("LogicError", "Mismatched size for "+name); 
         check_type<T>(type); // throws if type is wrong
         auto & vec = bigVector<T>();
-        columns_.emplace_back({name,type,vec.size()});
+        columns_.emplace_back(name,type,vec.size());
         vec.insert(vec.end(), values.begin(), values.end());
     }
   
     template<typename T> static ColumnType defaultColumnType() { throw cms::Exception("unsupported type"); }
 
-  private:
-     struct Column {
+    // this below needs to be public for ROOT, but it is to be considered private otherwise
+    struct Column {
         std::string name;
         ColumnType type;
         unsigned int firstIndex;
-     };
+        Column() {} // for ROOT
+        Column(const std::string & aname, ColumnType atype, unsigned int anIndex) : name(aname), type(atype), firstIndex(anIndex) {}
+    };
+
+  private:
 
      template<typename T>
      typename std::vector<T>::const_iterator beginData(unsigned int column) const {
@@ -75,7 +80,7 @@ class FlatTable {
      std::vector<T> & bigVector() { throw cms::Exception("unsupported type"); }
 
 
-     const unsigned int size_;
+     unsigned int size_;
      std::vector<Column> columns_;
      std::vector<float> floats_;
      std::vector<int> ints_;

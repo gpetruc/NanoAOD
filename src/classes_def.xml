@@ -1,6 +1,9 @@
 <lcgdict>
+    <class name="FlatTable::Column" />
+    <class name="std::vector<FlatTable::Column>" />
     <class name="FlatTable" ClassVersion="3">
-        <version ClassVersion="3" checksum="882208996"/>
+        <version ClassVersion="3" checksum="1277831841"/>
     </class>
+    <class name="edm::Wrapper<FlatTable>" />
 </lcgdict>
 
