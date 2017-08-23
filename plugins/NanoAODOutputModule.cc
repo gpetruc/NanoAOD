@@ -13,6 +13,7 @@
 // system include files
 #include <string>
 #include "TFile.h"
+#include "TTree.h"
 
 // user include files
 #include "FWCore/Framework/interface/OutputModule.h"
@@ -46,6 +47,35 @@ private:
   std::string m_logicalFileName;
   edm::JobReport::Token m_jrToken;
   std::unique_ptr<TFile> m_file;
+  std::unique_ptr<TTree> m_tree, m_lumiTree;
+
+  class CommonEventBranches {
+     public:
+         void branch(TTree &tree) {
+            tree.Branch("run", & m_run, "run/i");
+            tree.Branch("luminosityBlock", & m_luminosityBlock, "luminosityBlock/i");
+            tree.Branch("event", & m_event, "event/l");
+         }
+         void fill(const edm::EventID & id) { 
+            m_run = id.run(); m_luminosityBlock = id.luminosityBlock(); m_event = id.event(); 
+         }
+     private:
+         UInt_t m_run; UInt_t m_luminosityBlock; ULong64_t m_event;
+  } m_commonBranches;
+
+  class CommonLumiBranches {
+     public:
+         void branch(TTree &tree) {
+            tree.Branch("run", & m_run, "run/i");
+            tree.Branch("luminosityBlock", & m_luminosityBlock, "luminosityBlock/i");
+         }
+         void fill(const edm::LuminosityBlockID & id) { 
+            m_run = id.run(); 
+            m_luminosityBlock = id.value(); 
+         }
+     private:
+         UInt_t m_run; UInt_t m_luminosityBlock;
+  } m_commonLumiBranches;
 };
 
 
@@ -78,6 +108,9 @@ NanoAODOutputModule::write(edm::EventForOutput const& iEvent) {
 
   edm::Service<edm::JobReport> jr;
   jr->eventWrittenToFile(m_jrToken, iEvent.id().run(), iEvent.id().event());
+
+  m_commonBranches.fill(iEvent.id());
+  m_tree->Fill();
 }
 
 void 
@@ -85,6 +118,8 @@ NanoAODOutputModule::writeLuminosityBlock(edm::LuminosityBlockForOutput const& i
   edm::Service<edm::JobReport> jr;
   jr->reportLumiSection(m_jrToken, iLumi.id().run(), iLumi.id().value());
 
+  m_commonLumiBranches.fill(iLumi.id());
+  m_lumiTree->Fill();
 }
 
 void 
@@ -115,12 +150,23 @@ NanoAODOutputModule::openFile(edm::FileBlock const&) {
                                    );
 
   /* Setup file structure here */
+
+  // create the trees
+  m_tree.reset(new TTree("Events","Events"));
+  m_tree->SetAutoSave(std::numeric_limits<Long64_t>::max());
+  m_commonBranches.branch(*m_tree);
+
+  m_lumiTree.reset(new TTree("LuminosityBlocks","LuminosityBlocks"));
+  m_lumiTree->SetAutoSave(std::numeric_limits<Long64_t>::max());
+  m_commonLumiBranches.branch(*m_lumiTree);
 }
 void 
 NanoAODOutputModule::reallyCloseFile() {
   m_file->Write();
   m_file->Close();
   m_file.reset();
+  m_tree.release();     // apparently root has ownership
+  m_lumiTree.release(); // 
   edm::Service<edm::JobReport> jr;
   jr->outputFileClosed(m_jrToken);
 }
