@@ -12,12 +12,13 @@ class FlatTable {
     enum ColumnType { FloatColumn, IntColumn, UInt8Column }; // We could have other Float types with reduced mantissa, and similar
 
     FlatTable() : size_(0) {}
-    FlatTable(unsigned int size) : size_(size) {}
+    FlatTable(unsigned int size,const std::string & name) : size_(size),name_(name) {}
     ~FlatTable() {}
 
     unsigned int nColumns() const { return columns_.size(); };
     unsigned int nRows() const { return size_; };
     unsigned int size() const { return size_; }
+    std::string name() const { return name_; }
 
     const std::string & columnName(unsigned int col) const { return columns_[col].name; }
     int columnIndex(const std::string & name) const ; 
@@ -81,6 +82,7 @@ class FlatTable {
 
 
      unsigned int size_;
+     std::string name_;
      std::vector<Column> columns_;
      std::vector<float> floats_;
      std::vector<int> ints_;

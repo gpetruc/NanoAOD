@@ -16,11 +16,13 @@ CandInts   = cms.PSet( pdgId = cms.string("pdgId"), charge = cms.string("charge"
 process.jetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("slimmedJets"),
     cut = cms.string("pt > 15"),
+    name= cms.string("Jet"),
     floats = cms.PSet(P4Floats, area = cms.string("jetArea()")),
 )
 process.muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("slimmedMuons"),
     cut = cms.string("pt > 5 && track.isNonnull && (isGlobalMuon || isTrackerMuon) && isPFMuon"),
+    name= cms.string("Muon"),
     floats = cms.PSet(P4Floats, dxy = cms.string("dB")),
     ints = cms.PSet(CandInts, nStations = cms.string("numberOfMatchedStations")),
     bools = cms.PSet(mediumId = cms.string("isPFMuon && innerTrack.validFraction >= 0.49 && ( isGlobalMuon && globalTrack.normalizedChi2 < 3 && combinedQuality.chi2LocalPosition < 12 && combinedQuality.trkKink < 20 && segmentCompatibility >= 0.303 || segmentCompatibility >= 0.451 )")),
@@ -30,17 +32,7 @@ process.tables = cms.Path(process.jetTable + process.muonTable)
 
 process.out = cms.OutputModule("NanoAODOutputModule",
     fileName = cms.untracked.string('nano.root'),
-    outputCommands = cms.untracked.vstring("drop *", "keep *_muonTable_*_*", "keep *_jetTable_*_*"),
-    branches = cms.PSet(
-        muonTable = cms.PSet(
-            baseName = cms.string("Muon"),
-            floats = cms.vstring(process.muonTable.floats.parameterNames_()),
-            ints = cms.vstring(process.muonTable.ints.parameterNames_()),
-        ),
-        jetTable = cms.PSet(
-            baseName = cms.string("Jet"),
-            floats = cms.vstring(process.jetTable.floats.parameterNames_()),
-        ),
-    )
+    outputCommands = cms.untracked.vstring("drop *", "keep *_*Table_*_*"),
+
 )
 process.end = cms.EndPath(process.out)  
