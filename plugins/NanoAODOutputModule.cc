@@ -31,6 +31,8 @@
 #include "DataFormats/Provenance/interface/BranchDescription.h"
 #include "PhysicsTools/NanoAOD/interface/FlatTable.h"
 
+#include <iostream>
+
 class NanoAODOutputModule : public edm::one::OutputModule<> {
 public:
   NanoAODOutputModule(edm::ParameterSet const& pset);
@@ -51,7 +53,6 @@ private:
   edm::JobReport::Token m_jrToken;
   std::unique_ptr<TFile> m_file;
   std::unique_ptr<TTree> m_tree, m_lumiTree;
-  edm::ParameterSet branchPSet;
 
   class CommonEventBranches {
      public:
@@ -83,33 +84,36 @@ private:
 
   class TableOutputBranches {
      public:
-        TableOutputBranches(const edm::BranchDescription *desc, const edm::EDGetToken & token, const edm::ParameterSet &mainPSet) :
-            m_token(token)
+        TableOutputBranches(const edm::BranchDescription *desc, const edm::EDGetToken & token ) :
+            m_token(token), m_branchesBooked(false)
         {
             if (desc->className() != "FlatTable") throw cms::Exception("Configuration", "NanoAODOutputModule can only write out FlatTable objects");
-            std::string pname = desc->moduleLabel();
-            if (!desc->productInstanceName().empty()) pname += "_"+desc->productInstanceName();
-            const edm::ParameterSet & pset = mainPSet.getParameter<edm::ParameterSet>(pname);
-            m_baseName = pset.getParameter<std::string>("baseName");
-            typedef std::vector<std::string> vstring;
-            if (pset.existsAs<vstring>("floats")) {
-                for (const std::string & var : pset.getParameter<vstring>("floats")) {
-                    m_floatBranches.emplace_back(var, nullptr);
-                }
-            }
-            if (pset.existsAs<vstring>("ints")) {
-                for (const std::string & var : pset.getParameter<vstring>("ints")) {
-                    m_intBranches.emplace_back(var, nullptr);
-                }
-            }
-            if (pset.existsAs<vstring>("uint8s")) {
-                for (const std::string & var : pset.getParameter<vstring>("uint8s")) {
-                    m_uint8Branches.emplace_back(var, nullptr);
-                }
-            }
+        }
+	void defineBranchesFromFirstEvent(const FlatTable & tab) {
+            m_baseName=tab.name();
+	    for(size_t i=0;i<tab.nColumns();i++){
+		const std::string & var=tab.columnName(i);
+	        switch(tab.columnType(i)){
+		    case (FlatTable::FloatColumn):
+		      m_floatBranches.emplace_back(var, nullptr);
+		      break;
+		    case (FlatTable::IntColumn):
+		      m_intBranches.emplace_back(var, nullptr);
+		      break;
+		    case (FlatTable::UInt8Column):
+		      m_uint8Branches.emplace_back(var, nullptr);
+		      break;
+		}
+	    }
         }
         void branch(TTree &tree) {
-            tree.Branch(("n"+m_baseName).c_str(), & m_counter, ("n"+m_baseName + "/i").c_str());
+	    if(tree.FindBranch(("n"+m_baseName).c_str())!=nullptr)
+	    {
+		//FIXME
+		std::cout << "Multiple tables providing " << m_baseName << "need to implement a safety check on the sizes" << std::endl;
+	    } else {
+                tree.Branch(("n"+m_baseName).c_str(), & m_counter, ("n"+m_baseName + "/i").c_str());
+	    }
             std::string varsize = "[n" + m_baseName + "]";
             for (auto & pair : m_floatBranches) {
                 std::string branchName = m_baseName + "_" + pair.first;
@@ -124,11 +128,16 @@ private:
                 pair.second = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/b").c_str());
             }
         }
-        void fill(const edm::EventForOutput &iEvent) {
+        void fill(const edm::EventForOutput &iEvent,TTree & tree) {
             edm::Handle<FlatTable> handle;
             iEvent.getByToken(m_token, handle);
             const FlatTable & tab = *handle;
             m_counter = tab.size();
+	    if(!m_branchesBooked) {
+		defineBranchesFromFirstEvent(tab);	
+		m_branchesBooked=true;
+		branch(tree); 
+	    }
             for (auto & pair : m_floatBranches) fillColumn<float>(pair, tab);
             for (auto & pair : m_intBranches) fillColumn<int>(pair, tab);
             for (auto & pair : m_uint8Branches) fillColumn<uint8_t>(pair, tab);
@@ -147,6 +156,7 @@ private:
         std::vector<std::pair<std::string,TBranch *>> m_floatBranches;
         std::vector<std::pair<std::string,TBranch *>>   m_intBranches;
         std::vector<std::pair<std::string,TBranch *>> m_uint8Branches;
+	bool m_branchesBooked;
   };
   std::vector<TableOutputBranches> m_tables;
 };
@@ -167,8 +177,7 @@ NanoAODOutputModule::NanoAODOutputModule(edm::ParameterSet const& pset):
   edm::one::OutputModuleBase::OutputModuleBase(pset),
   edm::one::OutputModule<>(pset),
   m_fileName(pset.getUntrackedParameter<std::string>("fileName")),
-  m_logicalFileName(pset.getUntrackedParameter<std::string>("logicalFileName")),
-  branchPSet(pset.getParameter<edm::ParameterSet>("branches"))
+  m_logicalFileName(pset.getUntrackedParameter<std::string>("logicalFileName"))
 {
 }
 
@@ -179,12 +188,11 @@ NanoAODOutputModule::~NanoAODOutputModule()
 void 
 NanoAODOutputModule::write(edm::EventForOutput const& iEvent) {
   //Get data from 'e' and write it to the file
-
   edm::Service<edm::JobReport> jr;
   jr->eventWrittenToFile(m_jrToken, iEvent.id().run(), iEvent.id().event());
 
   m_commonBranches.fill(iEvent.id());
-  for (auto & t : m_tables) t.fill(iEvent);
+  for (auto & t : m_tables) t.fill(iEvent,*m_tree);
   m_tree->Fill();
 }
 
@@ -229,14 +237,13 @@ NanoAODOutputModule::openFile(edm::FileBlock const&) {
   const auto & keeps = keptProducts()[0];
   m_tables.reserve(keeps.size());
   for (const auto & keep : keeps) {
-      m_tables.emplace_back(keep.first, keep.second, branchPSet);
+      m_tables.emplace_back(keep.first, keep.second);
   }
 
   // create the trees
   m_tree.reset(new TTree("Events","Events"));
   m_tree->SetAutoSave(std::numeric_limits<Long64_t>::max());
   m_commonBranches.branch(*m_tree);
-  for (auto & t : m_tables) t.branch(*m_tree);
 
   m_lumiTree.reset(new TTree("LuminosityBlocks","LuminosityBlocks"));
   m_lumiTree->SetAutoSave(std::numeric_limits<Long64_t>::max());

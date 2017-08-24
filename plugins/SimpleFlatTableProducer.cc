@@ -15,7 +15,8 @@ public:
 
 SimpleFlatTableProducer( edm::ParameterSet const & params ):
     src_(consumes<edm::View<T>>( params.getParameter<edm::InputTag>("src") )),
-    cut_( params.getParameter<std::string>("cut"), true )
+    cut_( params.getParameter<std::string>("cut"), true),
+    name_( params.getParameter<std::string>("name") )
     {
         if (params.existsAs<edm::ParameterSet>("floats")) {
             edm::ParameterSet const & floatsPSet = params.getParameter<edm::ParameterSet>("floats");
@@ -52,7 +53,7 @@ SimpleFlatTableProducer( edm::ParameterSet const & params ):
         }
         unsigned int nsel = selobjs.size();
 
-        auto out = std::make_unique<FlatTable>(nsel);
+        auto out = std::make_unique<FlatTable>(nsel,name_);
 
         std::vector<float> floats(nsel);
         for (const auto & pair : floats_) {
@@ -85,7 +86,7 @@ SimpleFlatTableProducer( edm::ParameterSet const & params ):
 protected:
     const edm::EDGetTokenT<edm::View<T>> src_;
     const StringCutObjectSelector<T> cut_;
-    
+    const std::string name_; 
     std::vector<std::pair<std::string,StringObjectFunction<T>>> floats_; 
     std::vector<std::pair<std::string,StringObjectFunction<T>>> ints_; 
     std::vector<std::pair<std::string,StringCutObjectSelector<T>>> bools_; 

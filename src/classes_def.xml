@@ -2,7 +2,7 @@
     <class name="FlatTable::Column" />
     <class name="std::vector<FlatTable::Column>" />
     <class name="FlatTable" ClassVersion="3">
-        <version ClassVersion="3" checksum="1277831841"/>
+        <version ClassVersion="3" checksum="2295190858"/>
     </class>
     <class name="edm::Wrapper<FlatTable>" />
 </lcgdict>

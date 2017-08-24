@@ -1,5 +1,5 @@
 import FWCore.ParameterSet.Config as cms
-process = cms.Process('cmsMerge')
+process = cms.Process('NANO')
 
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
@@ -30,9 +30,9 @@ process.muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
 
 process.tables = cms.Path(process.jetTable + process.muonTable)
 
-process.out = cms.OutputModule("NanoAODOutputModule",
-    fileName = cms.untracked.string('nano.root'),
-    outputCommands = cms.untracked.vstring("drop *", "keep *_*Table_*_*"),
-
+process.out = cms.OutputModule("PoolOutputModule",
+   fileName = cms.untracked.string("step1.root"),
+   outputCommands = cms.untracked.vstring("drop *", "keep *_*Table_*_*"),
 )
+
 process.end = cms.EndPath(process.out)  
