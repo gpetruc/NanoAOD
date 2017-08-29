@@ -14,7 +14,7 @@ process.source.fileNames = [
 process.load("PhysicsTools.NanoAOD.nano_cff")
 
 
-process.tablesPath = cms.Path(process.tables)
+process.nanoPath = cms.Path(process.nanoSequence)
 
 process.out = cms.OutputModule("NanoAODOutputModule",
     fileName = cms.untracked.string('nano.root'),
