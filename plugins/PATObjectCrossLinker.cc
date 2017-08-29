@@ -36,6 +36,8 @@
 #include "DataFormats/PatCandidates/interface/Photon.h"
 #include "DataFormats/PatCandidates/interface/Tau.h"
 
+#include "DataFormats/Common/interface/View.h"
+
 #include "PhysicsTools/NanoAOD/interface/MatchingUtils.h"
 //
 // class declaration
@@ -62,11 +64,11 @@ class PATObjectCrossLinker : public edm::stream::EDProducer<> {
       //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
       // ----------member data ---------------------------
-      const edm::EDGetTokenT<std::vector<pat::Jet>> jets_;
-      const edm::EDGetTokenT<edm::View<reco::Candidate>> muons_;
-      const edm::EDGetTokenT<std::vector<pat::Electron>> electrons_;
-      const edm::EDGetTokenT<std::vector<pat::Tau>> taus_;
-      const edm::EDGetTokenT<std::vector<pat::Photon>> photons_;
+      const edm::EDGetTokenT<edm::View<pat::Jet>> jets_;
+      const edm::EDGetTokenT<edm::View<pat::Muon>> muons_;
+      const edm::EDGetTokenT<edm::View<pat::Electron>> electrons_;
+      const edm::EDGetTokenT<edm::View<pat::Tau>> taus_;
+      const edm::EDGetTokenT<edm::View<pat::Photon>> photons_;
 
 
 };
@@ -75,11 +77,11 @@ class PATObjectCrossLinker : public edm::stream::EDProducer<> {
 // constructors and destructor
 //
 PATObjectCrossLinker::PATObjectCrossLinker(const edm::ParameterSet& params):
-    jets_(consumes<std::vector<pat::Jet>>( params.getParameter<edm::InputTag>("jets") )),
-    muons_(consumes<edm::View<reco::Candidate>>( params.getParameter<edm::InputTag>("muons") )),
-    electrons_(consumes<std::vector<pat::Electron>>( params.getParameter<edm::InputTag>("electrons") )),
-    taus_(consumes<std::vector<pat::Tau>>( params.getParameter<edm::InputTag>("taus") )),
-    photons_(consumes<std::vector<pat::Photon>>( params.getParameter<edm::InputTag>("photons") ))
+    jets_(consumes<edm::View<pat::Jet>>( params.getParameter<edm::InputTag>("jets") )),
+    muons_(consumes<edm::View<pat::Muon>>( params.getParameter<edm::InputTag>("muons") )),
+    electrons_(consumes<edm::View<pat::Electron>>( params.getParameter<edm::InputTag>("electrons") )),
+    taus_(consumes<edm::View<pat::Tau>>( params.getParameter<edm::InputTag>("taus") )),
+    photons_(consumes<edm::View<pat::Photon>>( params.getParameter<edm::InputTag>("photons") ))
 
 {
    produces<std::vector<pat::Jet>>("jets");
@@ -131,30 +133,34 @@ void
 PATObjectCrossLinker::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
     using namespace edm;
-    edm::Handle<std::vector<pat::Jet>> jetsIn;
+    edm::Handle<edm::View<pat::Jet>> jetsIn;
     iEvent.getByToken(jets_, jetsIn);
-    auto jets = std::make_unique<std::vector<pat::Jet>>(*jetsIn);
+    auto jets = std::make_unique<std::vector<pat::Jet>>();
+    for(const auto & j  : *jetsIn) jets->push_back(j);
     auto jetRefProd =  iEvent.getRefBeforePut< std::vector<pat::Jet> >("jets");
 
-    edm::Handle<edm::View<reco::Candidate>> muonsIn;
+    edm::Handle<edm::View<pat::Muon>> muonsIn;
     iEvent.getByToken(muons_, muonsIn);
     auto muons = std::make_unique<std::vector<pat::Muon>>();
-    for(const auto & m  : *muonsIn) {muons->push_back(pat::Muon(*dynamic_cast<const pat::Muon *>(&m)));}
+    for(const auto & m  : *muonsIn) muons->push_back(m);
     auto muRefProd =  iEvent.getRefBeforePut< std::vector<pat::Muon> >("muons");
 
-    edm::Handle<std::vector<pat::Electron>> electronsIn;
+    edm::Handle<edm::View<pat::Electron>> electronsIn;
     iEvent.getByToken(electrons_, electronsIn);
-    auto electrons = std::make_unique<std::vector<pat::Electron>>(*electronsIn);
+    auto electrons = std::make_unique<std::vector<pat::Electron>>();
+    for(const auto & e  : *electronsIn) electrons->push_back(e);
     auto eleRefProd =  iEvent.getRefBeforePut< std::vector<pat::Electron> >("electrons");
 
-    edm::Handle<std::vector<pat::Tau>> tausIn;
+    edm::Handle<edm::View<pat::Tau>> tausIn;
     iEvent.getByToken(taus_, tausIn);
-    auto taus = std::make_unique<std::vector<pat::Tau>>(*tausIn);
+    auto taus = std::make_unique<std::vector<pat::Tau>>();
+    for(const auto & t  : *tausIn) taus->push_back(t);
     auto tauRefProd =  iEvent.getRefBeforePut< std::vector<pat::Tau> >("taus");
 
-    edm::Handle<std::vector<pat::Photon>> photonsIn;
+    edm::Handle<edm::View<pat::Photon>> photonsIn;
     iEvent.getByToken(photons_, photonsIn);
-    auto photons = std::make_unique<std::vector<pat::Photon>>(*photonsIn);
+    auto photons = std::make_unique<std::vector<pat::Photon>>();
+    for(const auto & p  : *photonsIn) photons->push_back(p);
     auto phRefProd =  iEvent.getRefBeforePut< std::vector<pat::Photon> >("photons");
 
     matchOneToMany(jetRefProd,*jets,"jet",muRefProd,*muons,"muons");
