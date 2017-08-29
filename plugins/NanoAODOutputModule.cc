@@ -30,6 +30,7 @@
 
 #include "DataFormats/Provenance/interface/BranchDescription.h"
 #include "PhysicsTools/NanoAOD/interface/FlatTable.h"
+#include "PhysicsTools/NanoAOD/plugins/TableOutputBranches.h"
 
 #include <iostream>
 
@@ -82,96 +83,6 @@ private:
          UInt_t m_run; UInt_t m_luminosityBlock;
   } m_commonLumiBranches;
 
-  class TableOutputBranches {
-     public:
-        TableOutputBranches(const edm::BranchDescription *desc, const edm::EDGetToken & token ) :
-            m_token(token), m_branchesBooked(false)
-        {
-            if (desc->className() != "FlatTable") throw cms::Exception("Configuration", "NanoAODOutputModule can only write out FlatTable objects");
-        }
-	void defineBranchesFromFirstEvent(const FlatTable & tab) {
-            m_baseName=tab.name();
-	    for(size_t i=0;i<tab.nColumns();i++){
-		const std::string & var=tab.columnName(i);
-	        switch(tab.columnType(i)){
-		    case (FlatTable::FloatColumn):
-		      m_floatBranches.emplace_back(var, tab.columnDoc(i));
-		      break;
-		    case (FlatTable::IntColumn):
-		      m_intBranches.emplace_back(var, tab.columnDoc(i));
-		      break;
-		    case (FlatTable::UInt8Column):
-		      m_uint8Branches.emplace_back(var, tab.columnDoc(i));
-		      break;
-		}
-	    }
-        }
-        void branch(TTree &tree) {
-            if (!m_singleton)  {
-                if(tree.FindBranch(("n"+m_baseName).c_str())!=nullptr)
-                {
-                    //FIXME
-                    std::cout << "Multiple tables providing " << m_baseName << "need to implement a safety check on the sizes" << std::endl;
-                } else {
-                    tree.Branch(("n"+m_baseName).c_str(), & m_counter, ("n"+m_baseName + "/i").c_str());
-                }
-            }
-            std::string varsize = m_singleton ? "" : "[n" + m_baseName + "]";
-            for (auto & pair : m_floatBranches) {
-                std::string branchName = m_baseName + "_" + pair.name;
-                pair.branch = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/F").c_str());
-                pair.branch->SetTitle(pair.title.c_str());
-            }
-            for (auto & pair : m_intBranches) {
-                std::string branchName = m_baseName + "_" + pair.name;
-                pair.branch = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/I").c_str());
-                pair.branch->SetTitle(pair.title.c_str());
-            }
-            for (auto & pair : m_uint8Branches) {
-                std::string branchName = m_baseName + "_" + pair.name;
-                pair.branch = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/b").c_str());
-                pair.branch->SetTitle(pair.title.c_str());
-            }
-        }
-        void fill(const edm::EventForOutput &iEvent,TTree & tree) {
-            edm::Handle<FlatTable> handle;
-            iEvent.getByToken(m_token, handle);
-            const FlatTable & tab = *handle;
-            m_counter = tab.size();
-            m_singleton = tab.singleton();
-	    if(!m_branchesBooked) {
-		defineBranchesFromFirstEvent(tab);	
-		m_branchesBooked=true;
-		branch(tree); 
-	    }
-            for (auto & pair : m_floatBranches) fillColumn<float>(pair, tab);
-            for (auto & pair : m_intBranches) fillColumn<int>(pair, tab);
-            for (auto & pair : m_uint8Branches) fillColumn<uint8_t>(pair, tab);
-        }
-     private:
-        edm::EDGetToken m_token;
-        std::string  m_baseName;
-	bool         m_singleton;
-        UInt_t       m_counter;
-        struct NamedBranchPtr {
-            std::string name, title;
-            TBranch * branch;
-            NamedBranchPtr(const std::string & aname, const std::string & atitle, TBranch *branchptr = nullptr) : 
-                name(aname), title(atitle), branch(branchptr) {}
-        };
-        std::vector<NamedBranchPtr> m_floatBranches;
-        std::vector<NamedBranchPtr>   m_intBranches;
-        std::vector<NamedBranchPtr> m_uint8Branches;
-	bool m_branchesBooked;
-
-        template<typename T>
-        void fillColumn(NamedBranchPtr & pair, const FlatTable & tab) {
-            int idx = tab.columnIndex(pair.name);
-            if (idx == -1) throw cms::Exception("LogicError", "Missing column in input for "+m_baseName+"_"+pair.name);
-            pair.branch->SetAddress( const_cast<T *>(& tab.columnData<T>(idx).front() ) ); // SetAddress should take a const * !
-        }
-
-  };
   std::vector<TableOutputBranches> m_tables;
 };
 

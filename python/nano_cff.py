@@ -1,9 +1,11 @@
 import FWCore.ParameterSet.Config as cms
+from PhysicsTools.NanoAOD.common_cff import *
 from PhysicsTools.NanoAOD.jets_cff import *
 from PhysicsTools.NanoAOD.muons_cff import *
 from PhysicsTools.NanoAOD.taus_cff import *
 from PhysicsTools.NanoAOD.electrons_cff import *
 from PhysicsTools.NanoAOD.photons_cff import *
+from PhysicsTools.NanoAOD.globals_cff import *
 
 
 linkedObjects = cms.EDProducer("PATObjectCrossLinker",
@@ -23,6 +25,6 @@ metTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
 
 nanoSequence = cms.Sequence(muonSequence + jetSequence + tauSequence + electronSequence+photonSequence+
         linkedObjects +
-        jetTables + muonTables + tauTables + electronTables + photonTables + metTable)
+        jetTables + muonTables + tauTables + electronTables + photonTables + metTable + globalTables)
 
 
