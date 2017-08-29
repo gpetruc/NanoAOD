@@ -12,12 +12,13 @@ class FlatTable {
     enum ColumnType { FloatColumn, IntColumn, UInt8Column }; // We could have other Float types with reduced mantissa, and similar
 
     FlatTable() : size_(0) {}
-    FlatTable(unsigned int size,const std::string & name) : size_(size),name_(name) {}
+    FlatTable(unsigned int size, const std::string & name, bool singleton) : size_(size), name_(name), singleton_(singleton) {}
     ~FlatTable() {}
 
     unsigned int nColumns() const { return columns_.size(); };
     unsigned int nRows() const { return size_; };
     unsigned int size() const { return size_; }
+    bool singleton() const { return singleton_; }
     std::string name() const { return name_; }
 
     const std::string & columnName(unsigned int col) const { return columns_[col].name; }
@@ -39,6 +40,13 @@ class FlatTable {
          return boost::sub_range<std::vector<T>>(begin, begin+size_);
     }
 
+    /// get a column value for singleton (const)
+    template<typename T>
+    const T & columValue(unsigned int column) const {
+         if (!singleton()) throw cms::Exception("LogicError", "columnValue works only for singleton tables");
+         return * beginData<T>(column);
+    }
+
     template<typename T, typename C = std::vector<T>>
     void addColumn(const std::string & name, const C & values, ColumnType type = defaultColumnType<T>()) {
         if (columnIndex(name) != -1) throw cms::Exception("LogicError", "Duplicated column: "+name); 
@@ -48,7 +56,16 @@ class FlatTable {
         columns_.emplace_back(name,type,vec.size());
         vec.insert(vec.end(), values.begin(), values.end());
     }
-  
+    template<typename T, typename C>
+    void addColumnValue(const std::string & name, const C & value, ColumnType type = defaultColumnType<T>()) {
+        if (!singleton()) throw cms::Exception("LogicError", "addColumnValue works only for singleton tables");
+        if (columnIndex(name) != -1) throw cms::Exception("LogicError", "Duplicated column: "+name);
+        check_type<T>(type); // throws if type is wrong
+        auto & vec = bigVector<T>();
+        columns_.emplace_back(name,type,vec.size());
+        vec.push_back(value);
+    }
+ 
     template<typename T> static ColumnType defaultColumnType() { throw cms::Exception("unsupported type"); }
 
     // this below needs to be public for ROOT, but it is to be considered private otherwise
@@ -83,6 +100,7 @@ class FlatTable {
 
      unsigned int size_;
      std::string name_;
+     bool singleton_;
      std::vector<Column> columns_;
      std::vector<float> floats_;
      std::vector<int> ints_;
