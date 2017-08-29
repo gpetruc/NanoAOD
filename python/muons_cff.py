@@ -11,7 +11,7 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     cut = cms.string(""), #we should not filter on cross linked collections
     name = cms.string("Muon"),
     singleton = cms.bool(False),
-    vars = cms.PSet(CandVars,
+    variables = cms.PSet(CandVars,
         dxy   = Var("dB", float, doc = "dxy wrt first PV, in cm"),
         jetPt = Var("?hasUserCand('jet')?userCand('jet').pt():-1", float, doc = "pt of associated jet"),
         nStations = Var("numberOfMatchedStations", int, doc = "number of matched stations with default arbitration (segment & track)"),

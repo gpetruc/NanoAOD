@@ -18,7 +18,7 @@ metTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("slimmedMETs"),
     name = cms.string("MET"),
     singleton = cms.bool(True),
-    vars = cms.PSet(PTVars),
+    variables = cms.PSet(PTVars),
 )
 
 nanoSequence = cms.Sequence(muonSequence + jetSequence + tauSequence + electronSequence+photonSequence+

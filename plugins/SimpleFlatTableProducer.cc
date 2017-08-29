@@ -17,7 +17,7 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
             name_( params.getParameter<std::string>("name") ),
             src_(consumes<TProd>( params.getParameter<edm::InputTag>("src") ))
         {
-            edm::ParameterSet const & varsPSet = params.getParameter<edm::ParameterSet>("vars");
+            edm::ParameterSet const & varsPSet = params.getParameter<edm::ParameterSet>("variables");
             for (const std::string & vname : varsPSet.getParameterNamesForType<edm::ParameterSet>()) {
                 const auto & varPSet = varsPSet.getParameter<edm::ParameterSet>(vname);
                 const std::string & type = varPSet.getParameter<std::string>("type");

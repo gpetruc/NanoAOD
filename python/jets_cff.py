@@ -17,7 +17,7 @@ jetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     cut = cms.string(""), #we should not filter on cross linked collections
     name = cms.string("Jet"),
     singleton = cms.bool(False),
-    vars = cms.PSet(P4Vars,
+    variables = cms.PSet(P4Vars,
         area = Var("jetArea()", float, doc="jet catchment area, for JECs"),
         nMuonsInJet = Var("?hasOverlaps('muons')?overlaps('muons').size():0", int, doc="number of muons in the jet"),
     )

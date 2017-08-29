@@ -8,10 +8,10 @@ finalPhotons = cms.EDFilter("PATPhotonRefSelector",
 
 photonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("linkedObjects","photons"),
-    cut = cms.string("1"), #we should not filter on cross linked collections
+    cut = cms.string(""), #we should not filter on cross linked collections
     name= cms.string("Photon"),
     singleton = cms.bool(False),
-    vars = cms.PSet(CandVars,
+    variables = cms.PSet(CandVars,
        jet = Var("?hasUserCand('jet')?userCand('jet').key():-1", int, doc="index of the associated jet (-1 if none)"),
     )
 )

@@ -17,7 +17,7 @@ tauTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     cut = cms.string(""), #we should not filter on cross linked collections
     name= cms.string("Tau"),
     singleton = cms.bool(False),
-    vars = cms.PSet(CandVars,
+    variables = cms.PSet(CandVars,
        jet = Var("?hasUserCand('jet')?userCand('jet').key():-1", int, doc="index of the associated jet (-1 if none)"),
     )
 )
