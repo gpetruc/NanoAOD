@@ -12,7 +12,6 @@ process.source.fileNames = [
 ]
 process.load("PhysicsTools.NanoAOD.nano_cff")
 
-
 process.nanoPath = cms.Path(process.nanoSequence)
 
 process.out = cms.OutputModule("PoolOutputModule",
