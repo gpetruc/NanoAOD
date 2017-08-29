@@ -1,9 +1,9 @@
-#include "PhysicsTools/NanoAOD/plugins/PATObjectBaseCrossCleaner.h"
+#include "PhysicsTools/NanoAOD/plugins/NanoAODBaseCrossCleaner.h"
 
-class PATObjectSimpleCrossCleaner : public PATObjectBaseCrossCleaner {
+class NanoAODSimpleCrossCleaner : public NanoAODBaseCrossCleaner {
 public:
-      PATObjectSimpleCrossCleaner(const edm::ParameterSet&p):PATObjectBaseCrossCleaner(p){}
-      ~PATObjectSimpleCrossCleaner(){}
+      NanoAODSimpleCrossCleaner(const edm::ParameterSet&p):NanoAODBaseCrossCleaner(p){}
+      ~NanoAODSimpleCrossCleaner(){}
 
       virtual void objectSelection( const edm::View<pat::Muon>  & muons, const edm::View<pat::Jet> & jets,
                                  std::vector<uint8_t> & muonBits, std::vector<uint8_t> & jetBits ) override     {
@@ -15,5 +15,5 @@ public:
 	}
  
 };
-DEFINE_FWK_MODULE(PATObjectSimpleCrossCleaner);
+DEFINE_FWK_MODULE(NanoAODSimpleCrossCleaner);
 

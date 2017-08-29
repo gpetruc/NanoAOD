@@ -1,12 +1,12 @@
-#ifndef PhysicsTools_NanoAOD_PATObjectBaseCrossCleaner_h
-#define PhysicsTools_NanoAOD_PATObjectBaseCrossCleaner_h
+#ifndef PhysicsTools_NanoAOD_NanoAODBaseCrossCleaner_h
+#define PhysicsTools_NanoAOD_NanoAODBaseCrossCleaner_h
 
 // -*- C++ -*-
 //
 // Package:    PhysicsTools/NanoAOD
-// Class:      PATObjectBaseCrossCleaner
+// Class:      NanoAODBaseCrossCleaner
 // 
-/**\class PATObjectBaseCrossCleaner PATObjectBaseCrossCleaner.cc PhysicsTools/PATObjectBaseCrossCleaner/plugins/PATObjectBaseCrossCleaner.cc
+/**\class NanoAODBaseCrossCleaner NanoAODBaseCrossCleaner.cc PhysicsTools/NanoAODBaseCrossCleaner/plugins/NanoAODBaseCrossCleaner.cc
 
  Description: [one line class summary]
 
@@ -46,10 +46,10 @@
 // class declaration
 //
 
-class PATObjectBaseCrossCleaner : public edm::stream::EDProducer<> {
+class NanoAODBaseCrossCleaner : public edm::stream::EDProducer<> {
    public:
-      explicit PATObjectBaseCrossCleaner(const edm::ParameterSet&);
-      ~PATObjectBaseCrossCleaner();
+      explicit NanoAODBaseCrossCleaner(const edm::ParameterSet&);
+      ~NanoAODBaseCrossCleaner();
 
       static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
@@ -66,6 +66,9 @@ class PATObjectBaseCrossCleaner : public edm::stream::EDProducer<> {
       //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
       // ----------member data ---------------------------
+      const std::string name_;
+      const std::string doc_;
+
       const edm::EDGetTokenT<edm::View<pat::Jet>> jets_;
       const edm::EDGetTokenT<edm::View<pat::Muon>> muons_;
 /*    const edm::EDGetTokenT<edm::View<pat::Electron>> electrons_;

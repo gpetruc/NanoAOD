@@ -111,7 +111,7 @@ private:
                 if(tree.FindBranch(("n"+m_baseName).c_str())!=nullptr)
                 {
                     //FIXME
-                    std::cout << "Multiple tables providing " << m_baseName << "need to implement a safety check on the sizes" << std::endl;
+                    std::cout << "Multiple tables providing " << m_baseName << " need to implement a safety check on the sizes" << std::endl;
                 } else {
                     tree.Branch(("n"+m_baseName).c_str(), & m_counter, ("n"+m_baseName + "/i").c_str());
                 }

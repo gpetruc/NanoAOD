@@ -20,6 +20,7 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     ),
 )
 
+
 muonSequence = cms.Sequence(finalMuons)
 muonTables = cms.Sequence ( muonTable)
 

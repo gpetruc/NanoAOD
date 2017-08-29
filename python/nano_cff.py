@@ -14,6 +14,16 @@ linkedObjects = cms.EDProducer("PATObjectCrossLinker",
    photons=cms.InputTag("finalPhotons"),
 )
 
+simpleCleanerTable = cms.EDProducer("NanoAODSimpleCrossCleaner",
+   name=cms.string("cleanmask"),
+   doc=cms.string("simple cleaning mask with priority to leptons"),
+   jets=cms.InputTag("linkedObjects","jets"),
+   muons=cms.InputTag("linkedObjects","muons"),
+   jetSel=cms.string("pt>15"),
+   muonSel=cms.string("pt>20"),
+)
+
+
 metTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("slimmedMETs"),
     name = cms.string("MET"),
@@ -22,7 +32,7 @@ metTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
 )
 
 nanoSequence = cms.Sequence(muonSequence + jetSequence + tauSequence + electronSequence+photonSequence+
-        linkedObjects +
+        linkedObjects + simpleCleanerTable +
         jetTables + muonTables + tauTables + electronTables + photonTables + metTable)
 
 
