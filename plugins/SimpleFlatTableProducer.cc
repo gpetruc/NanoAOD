@@ -79,7 +79,7 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
                         for (unsigned int i = 0, n = vals.size(); i < n; ++i) {
                             vals[i] = func_(*selobjs[i]);
                         }
-                        out.template addColumn<ValType>(this->name_, vals, this->type_);
+                        out.template addColumn<ValType>(this->name_, vals, this->doc_, this->type_);
                     }
                 protected:
                     StringFunctor func_;

@@ -19,12 +19,14 @@ class FlatTable {
     unsigned int nRows() const { return size_; };
     unsigned int size() const { return size_; }
     bool singleton() const { return singleton_; }
-    std::string name() const { return name_; }
+    const std::string & name() const { return name_; }
 
     const std::string & columnName(unsigned int col) const { return columns_[col].name; }
     int columnIndex(const std::string & name) const ; 
 
     ColumnType columnType(unsigned int col) const { return columns_[col].type; }
+
+    const std::string & columnDoc(unsigned int col) const { return columns_[col].doc; }
 
     /// get a column by index (const)
     template<typename T>
@@ -48,21 +50,21 @@ class FlatTable {
     }
 
     template<typename T, typename C = std::vector<T>>
-    void addColumn(const std::string & name, const C & values, ColumnType type = defaultColumnType<T>()) {
+    void addColumn(const std::string & name, const C & values, const std::string & docString, ColumnType type = defaultColumnType<T>()) {
         if (columnIndex(name) != -1) throw cms::Exception("LogicError", "Duplicated column: "+name); 
         if (values.size() != size()) throw cms::Exception("LogicError", "Mismatched size for "+name); 
         check_type<T>(type); // throws if type is wrong
         auto & vec = bigVector<T>();
-        columns_.emplace_back(name,type,vec.size());
+        columns_.emplace_back(name,docString,type,vec.size());
         vec.insert(vec.end(), values.begin(), values.end());
     }
     template<typename T, typename C>
-    void addColumnValue(const std::string & name, const C & value, ColumnType type = defaultColumnType<T>()) {
+    void addColumnValue(const std::string & name, const C & value, const std::string & docString, ColumnType type = defaultColumnType<T>()) {
         if (!singleton()) throw cms::Exception("LogicError", "addColumnValue works only for singleton tables");
         if (columnIndex(name) != -1) throw cms::Exception("LogicError", "Duplicated column: "+name);
         check_type<T>(type); // throws if type is wrong
         auto & vec = bigVector<T>();
-        columns_.emplace_back(name,type,vec.size());
+        columns_.emplace_back(name,docString,type,vec.size());
         vec.push_back(value);
     }
  
@@ -70,11 +72,11 @@ class FlatTable {
 
     // this below needs to be public for ROOT, but it is to be considered private otherwise
     struct Column {
-        std::string name;
+        std::string name, doc;
         ColumnType type;
         unsigned int firstIndex;
         Column() {} // for ROOT
-        Column(const std::string & aname, ColumnType atype, unsigned int anIndex) : name(aname), type(atype), firstIndex(anIndex) {}
+        Column(const std::string & aname, const std::string & docString, ColumnType atype, unsigned int anIndex) : name(aname), doc(docString), type(atype), firstIndex(anIndex) {}
     };
 
   private:

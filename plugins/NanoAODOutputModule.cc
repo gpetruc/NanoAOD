@@ -95,37 +95,42 @@ private:
 		const std::string & var=tab.columnName(i);
 	        switch(tab.columnType(i)){
 		    case (FlatTable::FloatColumn):
-		      m_floatBranches.emplace_back(var, nullptr);
+		      m_floatBranches.emplace_back(var, tab.columnDoc(i));
 		      break;
 		    case (FlatTable::IntColumn):
-		      m_intBranches.emplace_back(var, nullptr);
+		      m_intBranches.emplace_back(var, tab.columnDoc(i));
 		      break;
 		    case (FlatTable::UInt8Column):
-		      m_uint8Branches.emplace_back(var, nullptr);
+		      m_uint8Branches.emplace_back(var, tab.columnDoc(i));
 		      break;
 		}
 	    }
         }
         void branch(TTree &tree) {
-	    if(tree.FindBranch(("n"+m_baseName).c_str())!=nullptr)
-	    {
-		//FIXME
-		std::cout << "Multiple tables providing " << m_baseName << "need to implement a safety check on the sizes" << std::endl;
-	    } else {
-                tree.Branch(("n"+m_baseName).c_str(), & m_counter, ("n"+m_baseName + "/i").c_str());
-	    }
-            std::string varsize = "[n" + m_baseName + "]";
+            if (!m_singleton)  {
+                if(tree.FindBranch(("n"+m_baseName).c_str())!=nullptr)
+                {
+                    //FIXME
+                    std::cout << "Multiple tables providing " << m_baseName << "need to implement a safety check on the sizes" << std::endl;
+                } else {
+                    tree.Branch(("n"+m_baseName).c_str(), & m_counter, ("n"+m_baseName + "/i").c_str());
+                }
+            }
+            std::string varsize = m_singleton ? "" : "[n" + m_baseName + "]";
             for (auto & pair : m_floatBranches) {
-                std::string branchName = m_baseName + "_" + pair.first;
-                pair.second = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/F").c_str());
+                std::string branchName = m_baseName + "_" + pair.name;
+                pair.branch = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/F").c_str());
+                pair.branch->SetTitle(pair.title.c_str());
             }
             for (auto & pair : m_intBranches) {
-                std::string branchName = m_baseName + "_" + pair.first;
-                pair.second = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/I").c_str());
+                std::string branchName = m_baseName + "_" + pair.name;
+                pair.branch = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/I").c_str());
+                pair.branch->SetTitle(pair.title.c_str());
             }
             for (auto & pair : m_uint8Branches) {
-                std::string branchName = m_baseName + "_" + pair.first;
-                pair.second = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/b").c_str());
+                std::string branchName = m_baseName + "_" + pair.name;
+                pair.branch = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/b").c_str());
+                pair.branch->SetTitle(pair.title.c_str());
             }
         }
         void fill(const edm::EventForOutput &iEvent,TTree & tree) {
@@ -133,6 +138,7 @@ private:
             iEvent.getByToken(m_token, handle);
             const FlatTable & tab = *handle;
             m_counter = tab.size();
+            m_singleton = tab.singleton();
 	    if(!m_branchesBooked) {
 		defineBranchesFromFirstEvent(tab);	
 		m_branchesBooked=true;
@@ -142,21 +148,29 @@ private:
             for (auto & pair : m_intBranches) fillColumn<int>(pair, tab);
             for (auto & pair : m_uint8Branches) fillColumn<uint8_t>(pair, tab);
         }
-        template<typename T>
-        void fillColumn(std::pair<std::string, TBranch *> & pair, const FlatTable & tab) {
-            int idx = tab.columnIndex(pair.first);
-            if (idx == -1) throw cms::Exception("LogicError", "Missing column in input for "+m_baseName+"_"+pair.first);
-            pair.second->SetAddress( const_cast<T *>(& tab.columnData<T>(idx).front() ) ); // SetAddress should take a const * !
-        }
      private:
         edm::EDGetToken m_token;
         std::string  m_baseName;
-        unsigned int m_maxEntries;
+	bool         m_singleton;
         UInt_t       m_counter;
-        std::vector<std::pair<std::string,TBranch *>> m_floatBranches;
-        std::vector<std::pair<std::string,TBranch *>>   m_intBranches;
-        std::vector<std::pair<std::string,TBranch *>> m_uint8Branches;
+        struct NamedBranchPtr {
+            std::string name, title;
+            TBranch * branch;
+            NamedBranchPtr(const std::string & aname, const std::string & atitle, TBranch *branchptr = nullptr) : 
+                name(aname), title(atitle), branch(branchptr) {}
+        };
+        std::vector<NamedBranchPtr> m_floatBranches;
+        std::vector<NamedBranchPtr>   m_intBranches;
+        std::vector<NamedBranchPtr> m_uint8Branches;
 	bool m_branchesBooked;
+
+        template<typename T>
+        void fillColumn(NamedBranchPtr & pair, const FlatTable & tab) {
+            int idx = tab.columnIndex(pair.name);
+            if (idx == -1) throw cms::Exception("LogicError", "Missing column in input for "+m_baseName+"_"+pair.name);
+            pair.branch->SetAddress( const_cast<T *>(& tab.columnData<T>(idx).front() ) ); // SetAddress should take a const * !
+        }
+
   };
   std::vector<TableOutputBranches> m_tables;
 };
