@@ -29,6 +29,8 @@ simpleCleanerTable = cms.EDProducer("NanoAODSimpleCrossCleaner",
    electronSel=cms.string(""),
    tauSel=cms.string(""),
    photonSel=cms.string(""),
+   jetName=cms.string("Jet"),muonName=cms.string("Muon"),electronName=cms.string("Electron"),
+   tauName=cms.string("Tau"),photonName=cms.string("Photon")
 )
 
 
