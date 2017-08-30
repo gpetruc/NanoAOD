@@ -81,6 +81,11 @@ class NanoAODBaseCrossCleaner : public edm::stream::EDProducer<> {
       const StringCutObjectSelector<pat::Electron>  electronSel_;
       const StringCutObjectSelector<pat::Tau>  tauSel_;
       const StringCutObjectSelector<pat::Photon>  photonSel_;
+      const std::string  jetName_;
+      const std::string  muonName_;
+      const std::string  electronName_;
+      const std::string  tauName_;
+      const std::string  photonName_;
 
 
 };

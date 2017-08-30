@@ -34,8 +34,13 @@ NanoAODBaseCrossCleaner::NanoAODBaseCrossCleaner(const edm::ParameterSet& params
     muonSel_(params.getParameter<std::string>("muonSel") ),
     electronSel_(params.getParameter<std::string>("electronSel") ),
     tauSel_(params.getParameter<std::string>("tauSel") ),
-    photonSel_(params.getParameter<std::string>("photonSel") )
-
+    photonSel_(params.getParameter<std::string>("photonSel") ),
+    jetName_(params.getParameter<std::string>("jetName") ),
+    muonName_(params.getParameter<std::string>("muonName") ),
+    electronName_(params.getParameter<std::string>("electronName") ),
+    tauName_(params.getParameter<std::string>("tauName") ),
+    photonName_(params.getParameter<std::string>("photonName") )
+   
 {
    produces<FlatTable>("jets");
    produces<FlatTable>("muons");
@@ -70,32 +75,32 @@ NanoAODBaseCrossCleaner::produce(edm::Event& iEvent, const edm::EventSetup& iSet
     iEvent.getByToken(jets_, jetsIn);
     std::vector<uint8_t> jets;
     for (const auto & j: *jetsIn) {jets.push_back(jetSel_(j));}
-    auto jetsTable = std::make_unique<FlatTable>(jetsIn->size(),"Jet",false,true);
+    auto jetsTable = std::make_unique<FlatTable>(jetsIn->size(),jetName_,false,true);
 
     edm::Handle<edm::View<pat::Muon>> muonsIn;
     iEvent.getByToken(muons_, muonsIn);
     std::vector<uint8_t> muons;
     for (const auto & m: *muonsIn) {muons.push_back(muonSel_(m));}
-    auto muonsTable = std::make_unique<FlatTable>(muonsIn->size(),"Muon",false,true);
+    auto muonsTable = std::make_unique<FlatTable>(muonsIn->size(),muonName_,false,true);
 
 
     edm::Handle<edm::View<pat::Electron>> electronsIn;
     iEvent.getByToken(electrons_, electronsIn);
     std::vector<uint8_t> eles;
     for (const auto & e: *electronsIn) {eles.push_back(electronSel_(e));}
-    auto electronsTable = std::make_unique<FlatTable>(electronsIn->size(),"Electron",false,true);
+    auto electronsTable = std::make_unique<FlatTable>(electronsIn->size(),electronName_,false,true);
 
     edm::Handle<edm::View<pat::Tau>> tausIn;
     iEvent.getByToken(taus_, tausIn);
     std::vector<uint8_t> taus;
     for (const auto & t: *tausIn) {taus.push_back(tauSel_(t));}
-    auto tausTable = std::make_unique<FlatTable>(tausIn->size(),"Tau",false,true);
+    auto tausTable = std::make_unique<FlatTable>(tausIn->size(),tauName_,false,true);
 
     edm::Handle<edm::View<pat::Photon>> photonsIn;
     iEvent.getByToken(photons_, photonsIn);
     std::vector<uint8_t> photons;
     for (const auto & p: *photonsIn) {photons.push_back(photonSel_(p));}
-    auto photonsTable = std::make_unique<FlatTable>(photonsIn->size(),"Photon",false,true);
+    auto photonsTable = std::make_unique<FlatTable>(photonsIn->size(),photonName_,false,true);
 
 
     objectSelection(*jetsIn,*muonsIn,*electronsIn,*tausIn,*photonsIn,jets,muons,eles,taus,photons);
