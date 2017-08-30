@@ -21,8 +21,14 @@ simpleCleanerTable = cms.EDProducer("NanoAODSimpleCrossCleaner",
    doc=cms.string("simple cleaning mask with priority to leptons"),
    jets=cms.InputTag("linkedObjects","jets"),
    muons=cms.InputTag("linkedObjects","muons"),
+   electrons=cms.InputTag("linkedObjects","electrons"),
+   taus=cms.InputTag("linkedObjects","taus"),
+   photons=cms.InputTag("linkedObjects","photons"),
    jetSel=cms.string("pt>15"),
-   muonSel=cms.string("pt>20"),
+   muonSel=cms.string("isPFMuon && innerTrack.validFraction >= 0.49 && ( isGlobalMuon && globalTrack.normalizedChi2 < 3 && combinedQuality.chi2LocalPosition < 12 && combinedQuality.trkKink < 20 && segmentCompatibility >= 0.303 || segmentCompatibility >= 0.451 )"),
+   electronSel=cms.string(""),
+   tauSel=cms.string(""),
+   photonSel=cms.string(""),
 )
 
 

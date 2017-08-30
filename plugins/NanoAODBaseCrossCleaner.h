@@ -57,8 +57,10 @@ class NanoAODBaseCrossCleaner : public edm::stream::EDProducer<> {
       virtual void beginStream(edm::StreamID) override;
       virtual void produce(edm::Event&, const edm::EventSetup&) override;
       virtual void endStream() override;
-      virtual void objectSelection( const edm::View<pat::Muon>  & muons, const edm::View<pat::Jet> & jets, 
-                                 std::vector<uint8_t> & muonBits, std::vector<uint8_t> & jetBits ) {};
+      virtual void objectSelection( const edm::View<pat::Jet> & jets, const edm::View<pat::Muon>  & muons, const edm::View<pat::Electron> & eles, 
+				    const edm::View<pat::Tau> & taus, const edm::View<pat::Photon>  & photons,
+                                    std::vector<uint8_t> & jetBits, std::vector<uint8_t> & muonBits, std::vector<uint8_t> & eleBits,
+  				    std::vector<uint8_t> & tauBits, std::vector<uint8_t> & photonBits) {};
 
       //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
       //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
@@ -71,11 +73,14 @@ class NanoAODBaseCrossCleaner : public edm::stream::EDProducer<> {
 
       const edm::EDGetTokenT<edm::View<pat::Jet>> jets_;
       const edm::EDGetTokenT<edm::View<pat::Muon>> muons_;
-/*    const edm::EDGetTokenT<edm::View<pat::Electron>> electrons_;
+      const edm::EDGetTokenT<edm::View<pat::Electron>> electrons_;
       const edm::EDGetTokenT<edm::View<pat::Tau>> taus_;
-      const edm::EDGetTokenT<edm::View<pat::Photon>> photons_;*/
+      const edm::EDGetTokenT<edm::View<pat::Photon>> photons_;
       const StringCutObjectSelector<pat::Jet>  jetSel_;
       const StringCutObjectSelector<pat::Muon>  muonSel_;
+      const StringCutObjectSelector<pat::Electron>  electronSel_;
+      const StringCutObjectSelector<pat::Tau>  tauSel_;
+      const StringCutObjectSelector<pat::Photon>  photonSel_;
 
 
 };
