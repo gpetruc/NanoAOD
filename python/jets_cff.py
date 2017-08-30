@@ -25,6 +25,18 @@ jetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     )
 )
 
+jetMCTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+    src = cms.InputTag("linkedObjects","jets"),
+    cut = cms.string(""), #we should not filter on cross linked collections
+    name = cms.string("Jet"),
+    singleton = cms.bool(False), # the number of entries is variable
+    extension = cms.bool(True), # this is an extension  table for the jets
+    variables = cms.PSet(P4Vars,
+        partonFlavour = Var("partonFlavour()", float, doc="flavour from parton matching"),
+    )
+)
+
+
 jetSequence = cms.Sequence(finalJets)
-jetTables = cms.Sequence( jetTable )
+jetTables = cms.Sequence( jetTable +jetMCTable)
 
