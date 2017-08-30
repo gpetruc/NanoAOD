@@ -18,7 +18,7 @@ process.nanoPath = cms.Path(process.nanoSequence)
 
 process.out = cms.OutputModule("NanoAODOutputModule",
     fileName = cms.untracked.string('nano.root'),
-    outputCommands = cms.untracked.vstring("drop *", "keep *_*Table_*_*","keep edmTriggerResults_*_*_NANO","keep edmTriggerResults_*_*_HLT"),
+    outputCommands = cms.untracked.vstring("drop *", "keep *_*Table_*_*","keep edmTriggerResults_*_*_*"),
 
 )
 process.end = cms.EndPath(process.out)  
