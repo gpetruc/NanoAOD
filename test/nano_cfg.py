@@ -1,10 +1,10 @@
 import FWCore.ParameterSet.Config as cms
-process = cms.Process('cmsMerge')
+process = cms.Process('NANO')
 
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 process.MessageLogger.cerr.FwkReport.reportEvery = 100
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(10000))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(3000))
 
 process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring())
 process.source.fileNames = [
@@ -18,7 +18,7 @@ process.nanoPath = cms.Path(process.nanoSequence)
 
 process.out = cms.OutputModule("NanoAODOutputModule",
     fileName = cms.untracked.string('nano.root'),
-    outputCommands = cms.untracked.vstring("drop *", "keep *_*Table_*_*"),
+    outputCommands = cms.untracked.vstring("drop *", "keep *_*Table_*_*","keep edmTriggerResults_*_*_NANO","keep edmTriggerResults_*_*_HLT"),
 
 )
 process.end = cms.EndPath(process.out)  

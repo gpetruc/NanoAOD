@@ -16,7 +16,7 @@ process.nanoPath = cms.Path(process.nanoSequence)
 
 process.out = cms.OutputModule("PoolOutputModule",
    fileName = cms.untracked.string("step1.root"),
-   outputCommands = cms.untracked.vstring("drop *", "keep *_*Table_*_*"),
+   outputCommands = cms.untracked.vstring("drop *", "keep *_*Table_*_*","keep edmTriggerResults_*_*_NANO","keep edmTriggerResults_*_*_HLT"),
 )
 
 process.end = cms.EndPath(process.out)  
