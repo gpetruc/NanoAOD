@@ -31,6 +31,7 @@
 #include "DataFormats/Provenance/interface/BranchDescription.h"
 #include "PhysicsTools/NanoAOD/interface/FlatTable.h"
 #include "PhysicsTools/NanoAOD/plugins/TableOutputBranches.h"
+#include "PhysicsTools/NanoAOD/plugins/TriggerOutputBranches.h"
 
 #include <iostream>
 
@@ -84,6 +85,7 @@ private:
   } m_commonLumiBranches;
 
   std::vector<TableOutputBranches> m_tables;
+  std::vector<TriggerOutputBranches> m_triggers;
 };
 
 
@@ -121,6 +123,8 @@ NanoAODOutputModule::write(edm::EventForOutput const& iEvent) {
   for (unsigned int extensions = 0; extensions <= 1; ++extensions) {
       for (auto & t : m_tables) t.fill(iEvent,*m_tree,extensions);
   }
+  // fill triggers
+  for (auto & t : m_triggers) t.fill(iEvent,*m_tree);
   m_tree->Fill();
 }
 
@@ -162,10 +166,16 @@ NanoAODOutputModule::openFile(edm::FileBlock const&) {
 
   /* Setup file structure here */
   m_tables.clear();
+  m_triggers.clear();
   const auto & keeps = keptProducts()[0];
-  m_tables.reserve(keeps.size());
   for (const auto & keep : keeps) {
-      m_tables.emplace_back(keep.first, keep.second);
+      if(keep.first->className() == "FlatTable" )
+	      m_tables.push_back(TableOutputBranches(keep.first, keep.second));
+      else if(keep.first->className() == "edm::TriggerResults" )
+	  {
+	      m_triggers.push_back(TriggerOutputBranches(keep.first, keep.second));
+	  }
+      else {std::cout << "NanoAODOutputModule cannot handle class " <<  keep.first->className() << std::endl;     }
   }
 
   // create the trees
