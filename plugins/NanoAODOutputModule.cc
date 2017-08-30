@@ -117,7 +117,10 @@ NanoAODOutputModule::write(edm::EventForOutput const& iEvent) {
   jr->eventWrittenToFile(m_jrToken, iEvent.id().run(), iEvent.id().event());
 
   m_commonBranches.fill(iEvent.id());
-  for (auto & t : m_tables) t.fill(iEvent,*m_tree);
+  // fill all tables, starting from main tables and then doing extension tables
+  for (unsigned int extensions = 0; extensions <= 1; ++extensions) {
+      for (auto & t : m_tables) t.fill(iEvent,*m_tree,extensions);
+  }
   m_tree->Fill();
 }
 

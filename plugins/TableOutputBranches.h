@@ -19,12 +19,17 @@ class TableOutputBranches {
 
     void defineBranchesFromFirstEvent(const FlatTable & tab) ;
     void branch(TTree &tree) ;
-    void fill(const edm::EventForOutput &iEvent,TTree & tree) ;
+
+    /// Fill the current table, if extensions == table.extension().
+    /// This parameter is used so that the fill is called first for non-extensions and then for extensions
+    void fill(const edm::EventForOutput &iEvent, TTree & tree, bool extensions) ;
 
  private:
     edm::EDGetToken m_token;
     std::string  m_baseName;
     bool         m_singleton;
+    enum { IsMain=0, IsExtension=1, DontKnowYetIfMainOrExtension=2 } m_extension;
+    std::string  m_doc;
     UInt_t       m_counter;
     struct NamedBranchPtr {
         std::string name, title;
@@ -32,6 +37,7 @@ class TableOutputBranches {
         NamedBranchPtr(const std::string & aname, const std::string & atitle, TBranch *branchptr = nullptr) : 
             name(aname), title(atitle), branch(branchptr) {}
     };
+    TBranch * m_counterBranch;
     std::vector<NamedBranchPtr> m_floatBranches;
     std::vector<NamedBranchPtr>   m_intBranches;
     std::vector<NamedBranchPtr> m_uint8Branches;

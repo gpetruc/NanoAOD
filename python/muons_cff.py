@@ -10,7 +10,9 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("linkedObjects","muons"),
     cut = cms.string(""), #we should not filter on cross linked collections
     name = cms.string("Muon"),
-    singleton = cms.bool(False),
+    doc  = cms.string("slimmedMuons after basic selection (" + finalMuons.cut.value()+")"),
+    singleton = cms.bool(False), # the number of entries is variable
+    extension = cms.bool(False), # this is the main table for the muons
     variables = cms.PSet(CandVars,
         dxy   = Var("dB", float, doc = "dxy wrt first PV, in cm"),
         jetPt = Var("?hasUserCand('jet')?userCand('jet').pt():-1", float, doc = "pt of associated jet"),

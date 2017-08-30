@@ -35,7 +35,9 @@ simpleCleanerTable = cms.EDProducer("NanoAODSimpleCrossCleaner",
 metTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("slimmedMETs"),
     name = cms.string("MET"),
-    singleton = cms.bool(True),
+    doc = cms.string("slimmedMET, type-1 corrected PF MET"),
+    singleton = cms.bool(True),  # there's always exactly one MET per event
+    extension = cms.bool(False), # this is the main table for the MET
     variables = cms.PSet(PTVars),
 )
 

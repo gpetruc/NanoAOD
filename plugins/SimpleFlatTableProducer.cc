@@ -15,7 +15,9 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
 
         SimpleFlatTableProducerBase( edm::ParameterSet const & params ):
             name_( params.getParameter<std::string>("name") ),
-            src_(consumes<TProd>( params.getParameter<edm::InputTag>("src") ))
+            doc_(params.existsAs<std::string>("doc") ? params.getParameter<std::string>("doc") : ""),
+            extension_(params.existsAs<bool>("extension") ? params.getParameter<bool>("extension") : false),
+            src_(consumes<TProd>( params.getParameter<edm::InputTag>("src") )) 
         {
             edm::ParameterSet const & varsPSet = params.getParameter<edm::ParameterSet>("variables");
             for (const std::string & vname : varsPSet.getParameterNamesForType<edm::ParameterSet>()) {
@@ -43,7 +45,8 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
             std::vector<const T *> selobjs;
             getObjects(*src, selobjs);
 
-            auto out = std::make_unique<FlatTable>(selobjs.size(), name_, singleton());
+            auto out = std::make_unique<FlatTable>(selobjs.size(), name_, singleton(), extension_);
+            out->setDoc(doc_);
 
             for (const auto & var : vars_) var.fill(selobjs, *out);
 
@@ -52,6 +55,8 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
 
     protected:
         const std::string name_; 
+        const std::string doc_;
+        const bool extension_;
         const edm::EDGetTokenT<TProd> src_;
 
         class Variable {
