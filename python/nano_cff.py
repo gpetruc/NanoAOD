@@ -43,8 +43,14 @@ metTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     variables = cms.PSet(PTVars),
 )
 
+genWeightsTable = cms.EDProducer("GenWeightsTableProducer",
+    name = cms.string("genEvent"),
+    doc  = cms.string("generator weights from GenEventInfoProduct (main per-event weight, may be negative)"),
+    genEvent = cms.InputTag("generator"),
+)
+
 nanoSequence = cms.Sequence(muonSequence + jetSequence + tauSequence + electronSequence+photonSequence+
         linkedObjects + simpleCleanerTable +
-        jetTables + muonTables + tauTables + electronTables + photonTables + metTable + globalTables)
+        jetTables + muonTables + tauTables + electronTables + photonTables + metTable + globalTables + genWeightsTable)
 
 
