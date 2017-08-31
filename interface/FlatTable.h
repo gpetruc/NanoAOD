@@ -6,13 +6,14 @@
 #include <string>
 #include <boost/range/sub_range.hpp>
 #include <FWCore/Utilities/interface/Exception.h>
+#include <DataFormats/PatCandidates/interface/libminifloat.h>
 
 class FlatTable {
   public:
     enum ColumnType { FloatColumn, IntColumn, UInt8Column }; // We could have other Float types with reduced mantissa, and similar
 
     FlatTable() : size_(0) {}
-    FlatTable(unsigned int size, const std::string & name, bool singleton, bool extension=false) : size_(size), name_(name), singleton_(singleton), extension_(extension) {}
+    FlatTable(unsigned int size, const std::string & name, bool singleton, bool extension=false) : size_(size), name_(name), singleton_(singleton), extension_(extension)  {}
     ~FlatTable() {}
 
     unsigned int nColumns() const { return columns_.size(); };
@@ -53,13 +54,16 @@ class FlatTable {
     }
 
     template<typename T, typename C = std::vector<T>>
-    void addColumn(const std::string & name, const C & values, const std::string & docString, ColumnType type = defaultColumnType<T>()) {
+    void addColumn(const std::string & name, const C & values, const std::string & docString, ColumnType type = defaultColumnType<T>(),int mantissaBits=-1) {
         if (columnIndex(name) != -1) throw cms::Exception("LogicError", "Duplicated column: "+name); 
         if (values.size() != size()) throw cms::Exception("LogicError", "Mismatched size for "+name); 
         check_type<T>(type); // throws if type is wrong
         auto & vec = bigVector<T>();
         columns_.emplace_back(name,docString,type,vec.size());
         vec.insert(vec.end(), values.begin(), values.end());
+	if(type==FloatColumn and mantissaBits > 0){
+		for(auto & v : vec) v=MiniFloatConverter::reduceMantissaToNbits(v,mantissaBits);
+	}
     }
     template<typename T, typename C>
     void addColumnValue(const std::string & name, const C & value, const std::string & docString, ColumnType type = defaultColumnType<T>()) {
