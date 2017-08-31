@@ -49,9 +49,9 @@ jetMCTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
 )
 genJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("slimmedGenJets"),
-    cut = cms.string("pt > 10"), #we should not filter on cross linked collections
+    cut = cms.string("pt > 10"),
     name = cms.string("GenJet"),
-    doc  = cms.string("slimmedGenJets, i.e. ak4 Jets made with genparticle "),
+    doc  = cms.string("slimmedGenJets, i.e. ak4 Jets made with visible genparticles"),
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(False), # this is the main table for the genjets
     variables = cms.PSet(P4Vars,
