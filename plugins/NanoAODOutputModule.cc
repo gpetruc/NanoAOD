@@ -14,6 +14,8 @@
 #include <string>
 #include "TFile.h"
 #include "TTree.h"
+#include "TROOT.h"
+#include "Compression.h"
 
 // user include files
 #include "FWCore/Framework/interface/OutputModule.h"
@@ -172,6 +174,7 @@ NanoAODOutputModule::isFileOpen() const {
 
 void 
 NanoAODOutputModule::openFile(edm::FileBlock const&) {
+  //m_file = std::make_unique<TFile>(m_fileName.c_str(),"RECREATE","", ROOT::CompressionSettings(ROOT::kLZMA, 5));
   m_file = std::make_unique<TFile>(m_fileName.c_str(),"RECREATE");
   edm::Service<edm::JobReport> jr;
   cms::Digest branchHash;

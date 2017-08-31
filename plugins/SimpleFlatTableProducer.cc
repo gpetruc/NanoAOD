@@ -62,7 +62,8 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
         class Variable {
             public:
                 Variable(const std::string & aname, FlatTable::ColumnType atype, const edm::ParameterSet & cfg) : 
-                    name_(aname), doc_(cfg.getParameter<std::string>("doc")), type_(atype)
+                    name_(aname), doc_(cfg.getParameter<std::string>("doc")), type_(atype),
+		    precision_(cfg.existsAs<int>("precision") ? cfg.getParameter<int>("precision") : -1)
             {
             }
                 virtual void fill(std::vector<const T *> selobjs, FlatTable & out) const = 0;
@@ -72,6 +73,7 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
             protected:
                 std::string name_, doc_;
                 FlatTable::ColumnType type_;
+		int precision_;
         };
         template<typename StringFunctor, typename ValType>
             class FuncVariable : public Variable {
@@ -84,7 +86,7 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
                         for (unsigned int i = 0, n = vals.size(); i < n; ++i) {
                             vals[i] = func_(*selobjs[i]);
                         }
-                        out.template addColumn<ValType>(this->name_, vals, this->doc_, this->type_);
+                        out.template addColumn<ValType>(this->name_, vals, this->doc_, this->type_,this->precision_);
                     }
                 protected:
                     StringFunctor func_;

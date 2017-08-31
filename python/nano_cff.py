@@ -53,4 +53,8 @@ nanoSequence = cms.Sequence(muonSequence + jetSequence + tauSequence + electronS
         linkedObjects + simpleCleanerTable +
         jetTables + muonTables + tauTables + electronTables + photonTables + metTable + globalTables + genWeightsTable)
 
+nanoSequenceMC = cms.Sequence(muonSequence + jetSequenceMC + tauSequence + electronSequence+photonSequence+
+        linkedObjects + simpleCleanerTable +
+        jetTablesMC + muonTables + tauTables + electronTables + photonTables + metTable + globalTables)
+
 
