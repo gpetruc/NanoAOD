@@ -7,5 +7,26 @@
         <version ClassVersion="3" checksum="3559888950"/>
     </class>
     <class name="edm::Wrapper<FlatTable>" />
+
+    <class name="MergableCounterTable::FloatColumn" ClassVersion="3">
+        <version ClassVersion="3" checksum="2372693101"/>
+    </class>
+    <class name="MergableCounterTable::IntColumn" ClassVersion="3">
+        <version ClassVersion="3" checksum="1740185565"/>
+    </class>
+    <class name="MergableCounterTable::VFloatColumn" ClassVersion="3">
+        <version ClassVersion="3" checksum="1023857348"/>
+    </class>
+    <class name="MergableCounterTable::VIntColumn" ClassVersion="3">
+        <version ClassVersion="3" checksum="1437675700"/>
+    </class>
+    <class name="std::vector<MergableCounterTable::FloatColumn>" />
+    <class name="std::vector<MergableCounterTable::VFloatColumn>" />
+    <class name="std::vector<MergableCounterTable::IntColumn>" />
+    <class name="std::vector<MergableCounterTable::VIntColumn>" />
+    <class name="MergableCounterTable" ClassVersion="3">
+        <version ClassVersion="3" checksum="3124640011"/>
+    </class>
+    <class name="edm::Wrapper<MergableCounterTable>" />
 </lcgdict>
 
