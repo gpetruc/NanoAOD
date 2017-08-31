@@ -34,7 +34,7 @@ class GenWeightsTableProducer : public edm::global::EDProducer<edm::StreamCache<
         virtual ~GenWeightsTableProducer() {}
 
         void produce(edm::StreamID id, edm::Event& iEvent, const edm::EventSetup& iSetup) const override {
-            auto out = std::make_unique<FlatTable>(1, name_, true);
+            auto out = std::make_unique<FlatTable>(1, name_+"Weight", true);
             out->setDoc(doc_);
 
             edm::Handle<GenEventInfoProduct> genInfo;

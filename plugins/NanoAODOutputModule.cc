@@ -32,6 +32,7 @@
 #include "PhysicsTools/NanoAOD/interface/FlatTable.h"
 #include "PhysicsTools/NanoAOD/plugins/TableOutputBranches.h"
 #include "PhysicsTools/NanoAOD/plugins/TriggerOutputBranches.h"
+#include "PhysicsTools/NanoAOD/plugins/SummaryTableOutputBranches.h"
 
 #include <iostream>
 
@@ -54,7 +55,7 @@ private:
   std::string m_logicalFileName;
   edm::JobReport::Token m_jrToken;
   std::unique_ptr<TFile> m_file;
-  std::unique_ptr<TTree> m_tree, m_lumiTree;
+  std::unique_ptr<TTree> m_tree, m_lumiTree, m_runTree;
 
   class CommonEventBranches {
      public:
@@ -84,8 +85,23 @@ private:
          UInt_t m_run; UInt_t m_luminosityBlock;
   } m_commonLumiBranches;
 
+  class CommonRunBranches {
+     public:
+         void branch(TTree &tree) {
+            tree.Branch("run", & m_run, "run/i");
+         }
+         void fill(const edm::RunID & id) { 
+            m_run = id.run(); 
+         }
+     private:
+         UInt_t m_run;
+  } m_commonRunBranches;
+
+
   std::vector<TableOutputBranches> m_tables;
   std::vector<TriggerOutputBranches> m_triggers;
+
+  std::vector<SummaryTableOutputBranches> m_runTables;
 };
 
 
@@ -141,6 +157,12 @@ void
 NanoAODOutputModule::writeRun(edm::RunForOutput const& iRun) {
   edm::Service<edm::JobReport> jr;
   jr->reportRunNumber(m_jrToken, iRun.id().run());
+
+  m_commonRunBranches.fill(iRun.id());
+
+  for (auto & t : m_runTables) t.fill(iRun,*m_runTree);
+
+  m_runTree->Fill();
 }
 
 bool 
@@ -167,16 +189,24 @@ NanoAODOutputModule::openFile(edm::FileBlock const&) {
   /* Setup file structure here */
   m_tables.clear();
   m_triggers.clear();
-  const auto & keeps = keptProducts()[0];
-  for (const auto & keep : keeps) {
+  m_runTables.clear();
+  const auto & keeps = keptProducts();
+  for (const auto & keep : keeps[edm::InEvent]) {
       if(keep.first->className() == "FlatTable" )
 	      m_tables.push_back(TableOutputBranches(keep.first, keep.second));
       else if(keep.first->className() == "edm::TriggerResults" )
 	  {
 	      m_triggers.push_back(TriggerOutputBranches(keep.first, keep.second));
 	  }
-      else {std::cout << "NanoAODOutputModule cannot handle class " <<  keep.first->className() << std::endl;     }
+      else throw cms::Exception("Configuration", "NanoAODOutputModule cannot handle class " + keep.first->className());     
   }
+
+  for (const auto & keep : keeps[edm::InRun]) {
+      if(keep.first->className() == "MergableCounterTable" )
+	      m_runTables.push_back(SummaryTableOutputBranches(keep.first, keep.second));
+      else throw cms::Exception("Configuration", "NanoAODOutputModule cannot handle class " + keep.first->className() + " in Run branch");     
+  }
+
 
   // create the trees
   m_tree.reset(new TTree("Events","Events"));
@@ -186,6 +216,10 @@ NanoAODOutputModule::openFile(edm::FileBlock const&) {
   m_lumiTree.reset(new TTree("LuminosityBlocks","LuminosityBlocks"));
   m_lumiTree->SetAutoSave(std::numeric_limits<Long64_t>::max());
   m_commonLumiBranches.branch(*m_lumiTree);
+
+  m_runTree.reset(new TTree("Runs","Runs"));
+  m_runTree->SetAutoSave(std::numeric_limits<Long64_t>::max());
+  m_commonRunBranches.branch(*m_runTree);
 }
 void 
 NanoAODOutputModule::reallyCloseFile() {
@@ -194,6 +228,7 @@ NanoAODOutputModule::reallyCloseFile() {
   m_file.reset();
   m_tree.release();     // apparently root has ownership
   m_lumiTree.release(); // 
+  m_runTree.release(); // 
   edm::Service<edm::JobReport> jr;
   jr->outputFileClosed(m_jrToken);
 }

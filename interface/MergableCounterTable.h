@@ -13,6 +13,7 @@ class MergableCounterTable {
 
         template<typename T>
         struct SingleColumn {
+            typedef T value_type;
             SingleColumn() {}
             SingleColumn(const std::string & aname, const std::string & adoc, T avalue = T()) : name(aname), doc(adoc), value(avalue) {}
             std::string name, doc;
@@ -30,6 +31,7 @@ class MergableCounterTable {
        
         template<typename T>
         struct VectorColumn {
+            typedef T element_type;
             VectorColumn() {}
             VectorColumn(const std::string & aname, const std::string & adoc, unsigned int size) : name(aname), doc(adoc), values(size, T()) {}
             VectorColumn(const std::string & aname, const std::string & adoc, const std::vector<T> & somevalues) : name(aname), doc(adoc), values(somevalues) {}
