@@ -7,6 +7,7 @@ from PhysicsTools.NanoAOD.electrons_cff import *
 from PhysicsTools.NanoAOD.photons_cff import *
 from PhysicsTools.NanoAOD.globals_cff import *
 from PhysicsTools.NanoAOD.genparticles_cff import *
+from PhysicsTools.NanoAOD.vertices_cff import *
 
 
 linkedObjects = cms.EDProducer("PATObjectCrossLinker",
@@ -50,9 +51,9 @@ genWeightsTable = cms.EDProducer("GenWeightsTableProducer",
     genEvent = cms.InputTag("generator"),
 )
 
-nanoSequence = cms.Sequence(muonSequence + jetSequence + tauSequence + electronSequence+photonSequence+
+nanoSequence = cms.Sequence(muonSequence + jetSequence + tauSequence + electronSequence+photonSequence+vertexSequence+
         linkedObjects + simpleCleanerTable +
-        jetTables + muonTables + tauTables + electronTables + photonTables + metTable + globalTables + genWeightsTable)
+        jetTables + muonTables + tauTables + electronTables + photonTables + metTable + globalTables +vertexTables)
 
 nanoSequenceMC = cms.Sequence(genParticleSequence + nanoSequence + jetMC + genWeightsTable + genParticleTables)
 
