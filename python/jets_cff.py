@@ -22,12 +22,16 @@ jetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     variables = cms.PSet(P4Vars,
         area = Var("jetArea()", float, doc="jet catchment area, for JECs",precision=10),
         nMuons = Var("?hasOverlaps('muons')?overlaps('muons').size():0", int, doc="number of muons in the jet"),
+        muon1 = Var("?overlaps('muons').size()>0?overlaps('muons')[0].key():-1", int, doc="index of first matching muon"),
+        muon2 = Var("?overlaps('muons').size()>1?overlaps('muons')[1].key():-1", int, doc="index of second matching muon"),
+        electron1 = Var("?overlaps('electrons').size()>0?overlaps('electrons')[0].key():-1", int, doc="index of first matching electron"),
+        electron2 = Var("?overlaps('electrons').size()>1?overlaps('electrons')[1].key():-1", int, doc="index of second matching electron"),
         nElectrons = Var("?hasOverlaps('electrons')?overlaps('electrons').size():0", int, doc="number of electrons in the jet"),
 	btagCMVA = Var("bDiscriminator('pfCombinedMVAV2BJetTags')",float,doc="CMVA V2 btag discriminator",precision=10),
 	puIdDisc = Var("userFloat('pileupJetId:fullDiscriminant')",float,doc="Pilup ID discriminant"),
 	qgl = Var("userFloat('QGTagger:qgLikelihood')",float,doc="Quark vs Gluon likelihood discriminator",precision=10),
-	nConstituents = Var("numberOfDaughters()",float,doc="Number of particles in the jet"),
-	rawFactor = Var("1.-jecFactor('Uncorrected')",float,doc="1 - Factor to get back to raw pT",precision=8),
+	nConstituents = Var("numberOfDaughters()",int,doc="Number of particles in the jet"),
+	rawFactor = Var("1.-jecFactor('Uncorrected')",float,doc="1 - Factor to get back to raw pT",precision=6),
     )
 )
 
@@ -38,15 +42,29 @@ jetMCTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(True), # this is an extension  table for the jets
     variables = cms.PSet(
-        partonFlavour = Var("partonFlavour()", float, doc="flavour from parton matching"),
-        hadroFlavour = Var("hadronFlavour()", float, doc="flavour from hadron ghost clustering"),
+        partonFlavour = Var("partonFlavour()", int, doc="flavour from parton matching"),
+        hadroFlavour = Var("hadronFlavour()", int, doc="flavour from hadron ghost clustering"),
+        genJetIdx = Var("?genJetFwdRef().backRef().isNonnull()?genJetFwdRef().backRef().key():-1", int, doc="index of matched gen jet"),
     )
 )
+genJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+    src = cms.InputTag("slimmedGenJets"),
+    cut = cms.string("pt > 10"), #we should not filter on cross linked collections
+    name = cms.string("GenJet"),
+    doc  = cms.string("slimmedGenJets, i.e. ak4 Jets made with genparticle "),
+    singleton = cms.bool(False), # the number of entries is variable
+    extension = cms.bool(False), # this is the main table for the genjets
+    variables = cms.PSet(P4Vars,
+	#anything else?
+    )
+)
+
+
 
 #before cross linking
 jetSequence = cms.Sequence(finalJets)
 jetSequenceMC = cms.Sequence(jetSequence)
 #after cross linkining
 jetTables = cms.Sequence( jetTable)
-jetTablesMC = cms.Sequence( jetTables+jetMCTable)
+jetTablesMC = cms.Sequence( jetTables+jetMCTable+genJetTable)
 
