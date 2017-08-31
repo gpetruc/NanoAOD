@@ -65,8 +65,9 @@ genJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
 
 #before cross linking
 jetSequence = cms.Sequence(finalJets)
-jetSequenceMC = cms.Sequence(jetSequence)
 #after cross linkining
 jetTables = cms.Sequence( jetTable)
-jetTablesMC = cms.Sequence( jetTables+jetMCTable+genJetTable)
+
+#MC only producers and tables
+jetMC = cms.Sequence(jetMCTable+genJetTable)
 

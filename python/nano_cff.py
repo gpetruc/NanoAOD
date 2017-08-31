@@ -6,6 +6,7 @@ from PhysicsTools.NanoAOD.taus_cff import *
 from PhysicsTools.NanoAOD.electrons_cff import *
 from PhysicsTools.NanoAOD.photons_cff import *
 from PhysicsTools.NanoAOD.globals_cff import *
+from PhysicsTools.NanoAOD.genparticles_cff import *
 
 
 linkedObjects = cms.EDProducer("PATObjectCrossLinker",
@@ -53,8 +54,6 @@ nanoSequence = cms.Sequence(muonSequence + jetSequence + tauSequence + electronS
         linkedObjects + simpleCleanerTable +
         jetTables + muonTables + tauTables + electronTables + photonTables + metTable + globalTables + genWeightsTable)
 
-nanoSequenceMC = cms.Sequence(muonSequence + jetSequenceMC + tauSequence + electronSequence+photonSequence+
-        linkedObjects + simpleCleanerTable +
-        jetTablesMC + muonTables + tauTables + electronTables + photonTables + metTable + globalTables)
+nanoSequenceMC = cms.Sequence(genParticleSequence + nanoSequence + jetMC + genWeightsTable + genParticleTables)
 
 
