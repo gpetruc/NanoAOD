@@ -62,7 +62,7 @@ class FlatTable {
         columns_.emplace_back(name,docString,type,vec.size());
         vec.insert(vec.end(), values.begin(), values.end());
 	if(type==FloatColumn and mantissaBits > 0){
-		for(auto & v : vec) v=MiniFloatConverter::reduceMantissaToNbits(v,mantissaBits);
+		for(auto & v : columnData<T>(columns_.size()-1)) v=MiniFloatConverter::reduceMantissaToNbits(v,mantissaBits);
 	}
     }
     template<typename T, typename C>
