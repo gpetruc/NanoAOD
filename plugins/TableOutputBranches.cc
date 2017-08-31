@@ -2,6 +2,14 @@
 
 #include <iostream>
 
+namespace {
+    std::string makeBranchName(const std::string & baseName, const std::string & leafName) {
+        return baseName.empty()    ? leafName :
+                ( leafName.empty() ? baseName :
+                                     baseName + "_" + leafName); 
+    }
+}
+
 void 
 TableOutputBranches::defineBranchesFromFirstEvent(const FlatTable & tab) 
 {
@@ -42,17 +50,17 @@ TableOutputBranches::branch(TTree &tree)
     }
     std::string varsize = m_singleton ? "" : "[n" + m_baseName + "]";
     for (auto & pair : m_floatBranches) {
-        std::string branchName = (!m_baseName.empty()) ? m_baseName + "_" + pair.name : pair.name;
+        std::string branchName = makeBranchName(m_baseName, pair.name);
         pair.branch = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/F").c_str());
         pair.branch->SetTitle(pair.title.c_str());
     }
     for (auto & pair : m_intBranches) {
-        std::string branchName = (!m_baseName.empty()) ? m_baseName + "_" + pair.name : pair.name;
+        std::string branchName = makeBranchName(m_baseName, pair.name);
         pair.branch = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/I").c_str());
         pair.branch->SetTitle(pair.title.c_str());
     }
     for (auto & pair : m_uint8Branches) {
-        std::string branchName = (!m_baseName.empty()) ? m_baseName + "_" + pair.name : pair.name;
+        std::string branchName = makeBranchName(m_baseName, pair.name);
         pair.branch = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/b").c_str());
         pair.branch->SetTitle(pair.title.c_str());
     }
