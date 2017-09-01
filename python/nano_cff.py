@@ -52,8 +52,8 @@ genWeightsTable = cms.EDProducer("GenWeightsTableProducer",
 )
 
 nanoSequence = cms.Sequence(muonSequence + jetSequence + tauSequence + electronSequence+photonSequence+vertexSequence+
-        linkedObjects + simpleCleanerTable +
-        jetTables + muonTables + tauTables + electronTables + photonTables + metTable + globalTables +vertexTables)
+        linkedObjects  +
+        jetTables + muonTables + tauTables + electronTables + photonTables + metTable + globalTables +vertexTables+ simpleCleanerTable )
 
 nanoSequenceMC = cms.Sequence(genParticleSequence + nanoSequence + jetMC + genWeightsTable + genParticleTables)
 
