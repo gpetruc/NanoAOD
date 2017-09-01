@@ -352,11 +352,14 @@ class GenWeightsTableProducer : public edm::global::EDProducer<edm::StreamCache<
             out->addFloat("genEventSumw", "sum of gen weights", runCounter->sumw);
             out->addFloat("genEventSumw2", "sum of gen (weight^2)", runCounter->sumw2);
 
-            out->addVFloat("LHEScaleSumw", "Sum of genEventWeight * LHEScaleWeight[i]", runCounter->sumScale);
-            out->addVFloat("LHEPdfSumw", "Sum of genEventWeight * LHEPdfWeight[i]", runCounter->sumPDF);
+            double norm = runCounter->sumw ? 1.0/runCounter->sumw : 1;
+            auto sumScales = runCounter->sumScale; for (auto & val : sumScales) val *= norm;
+            out->addVFloat("LHEScaleSumw", "Sum of genEventWeight * LHEScaleWeight[i], divided by genEventSumw", sumScales);
+            auto sumPDFs = runCounter->sumPDF; for (auto & val : sumPDFs) val *= norm;
+            out->addVFloat("LHEPdfSumw", "Sum of genEventWeight * LHEPdfWeight[i], divided by genEventSumw", sumPDFs);
             if (!runCounter->sumNamed.empty()) { // it could be empty if there's no LHE info in the sample
                 for (unsigned int i = 0, n = namedWeightLabels_.size(); i < n; ++i) {
-                    out->addFloat("LHESumw_"+namedWeightLabels_[i], "Sum of genEventWeight * LHEWeight_"+namedWeightLabels_[i], runCounter->sumNamed[i]);
+                    out->addFloat("LHESumw_"+namedWeightLabels_[i], "Sum of genEventWeight * LHEWeight_"+namedWeightLabels_[i]+", divided by genEventSumw", runCounter->sumNamed[i] * norm);
                 }
             }
             iRun.put(std::move(out));
