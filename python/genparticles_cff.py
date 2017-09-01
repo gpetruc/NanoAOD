@@ -23,7 +23,7 @@ finalGenParticles = cms.EDProducer("GenParticlePruner",
         "keep abs(pdgId) == 23 || abs(pdgId) == 24 || abs(pdgId) == 25 || abs(pdgId) == 6 || abs(pdgId) == 37 ",   # keep VIP(articles)s
         "keep abs(pdgId) == 310 && abs(eta) < 2.5 && pt > 1 ",                                                     # keep K0
         "+keep abs(pdgId) == 13 && status == 1", # keep muon parents
-        "keep (4 <= abs(pdgId) <= 5)",
+        "keep (4 <= abs(pdgId) <= 5) && ( status <30 || status > 70)",
         "keep (1 <= abs(pdgId) <= 3 || pdgId = 21) & (status = 2 || status = 11 || status = 71 || status = 72) && pt>15", #increased to 15GeV wrt miniAOD
 # keep onia states, phi, X(3872), Z(4430)+ and psi(4040)
 #        "keep+ abs(pdgId) == 333",
