@@ -48,6 +48,13 @@ genWeightsTable = cms.EDProducer("GenWeightsTableProducer",
     doc  = cms.string("generator weights from GenEventInfoProduct (main per-event weight, may be negative)"),
     genEvent = cms.InputTag("generator"),
 )
+lheInfoTable = cms.EDProducer("LHETablesProducer",
+    lheInfo = cms.InputTag("externalLHEProducer"),
+    preferredPDFs = cms.vuint32(91400,260001),
+    namedWeightIDs = cms.vstring(),
+    namedWeightLabels = cms.vstring(),
+)
+
 
 nanoSequence = cms.Sequence(muonSequence + jetSequence + tauSequence + electronSequence+photonSequence+
         linkedObjects + simpleCleanerTable +
