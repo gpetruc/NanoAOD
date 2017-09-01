@@ -55,6 +55,8 @@ private:
 
   std::string m_fileName;
   std::string m_logicalFileName;
+  int m_compressionLevel;
+  std::string m_compressionAlgorithm;
   edm::JobReport::Token m_jrToken;
   std::unique_ptr<TFile> m_file;
   std::unique_ptr<TTree> m_tree, m_lumiTree, m_runTree;
@@ -122,7 +124,9 @@ NanoAODOutputModule::NanoAODOutputModule(edm::ParameterSet const& pset):
   edm::one::OutputModuleBase::OutputModuleBase(pset),
   edm::one::OutputModule<>(pset),
   m_fileName(pset.getUntrackedParameter<std::string>("fileName")),
-  m_logicalFileName(pset.getUntrackedParameter<std::string>("logicalFileName"))
+  m_logicalFileName(pset.getUntrackedParameter<std::string>("logicalFileName")),
+  m_compressionLevel(pset.getUntrackedParameter<int>("compressionLevel")),
+  m_compressionAlgorithm(pset.getUntrackedParameter<std::string>("compressionAlgorithm"))
 {
 }
 
@@ -174,8 +178,7 @@ NanoAODOutputModule::isFileOpen() const {
 
 void 
 NanoAODOutputModule::openFile(edm::FileBlock const&) {
-  //m_file = std::make_unique<TFile>(m_fileName.c_str(),"RECREATE","", ROOT::CompressionSettings(ROOT::kLZMA, 5));
-  m_file = std::make_unique<TFile>(m_fileName.c_str(),"RECREATE");
+  m_file = std::make_unique<TFile>(m_fileName.c_str(),"RECREATE","",m_compressionLevel);
   edm::Service<edm::JobReport> jr;
   cms::Digest branchHash;
   m_jrToken = jr->outputFileOpened(m_fileName,
@@ -189,6 +192,14 @@ NanoAODOutputModule::openFile(edm::FileBlock const&) {
                                    std::vector<std::string>()
                                    );
 
+  if (m_compressionAlgorithm == std::string("ZLIB")) {
+      m_file->SetCompressionAlgorithm(ROOT::kZLIB);
+    } else if (m_compressionAlgorithm == std::string("LZMA")) {
+      m_file->SetCompressionAlgorithm(ROOT::kLZMA);
+    } else {
+      throw cms::Exception("Configuration") << "NanoAODOutputModule configured with unknown compression algorithm '" << m_compressionAlgorithm << "'\n"
+					     << "Allowed compression algorithms are ZLIB and LZMA\n";
+    }
   /* Setup file structure here */
   m_tables.clear();
   m_triggers.clear();
@@ -196,10 +207,10 @@ NanoAODOutputModule::openFile(edm::FileBlock const&) {
   const auto & keeps = keptProducts();
   for (const auto & keep : keeps[edm::InEvent]) {
       if(keep.first->className() == "FlatTable" )
-	      m_tables.push_back(TableOutputBranches(keep.first, keep.second));
+	      m_tables.emplace_back(keep.first, keep.second);
       else if(keep.first->className() == "edm::TriggerResults" )
 	  {
-	      m_triggers.push_back(TriggerOutputBranches(keep.first, keep.second));
+	      m_triggers.emplace_back(keep.first, keep.second);
 	  }
       else throw cms::Exception("Configuration", "NanoAODOutputModule cannot handle class " + keep.first->className());     
   }
@@ -243,6 +254,11 @@ NanoAODOutputModule::fillDescriptions(edm::ConfigurationDescriptions& descriptio
   desc.addUntracked<std::string>("fileName");
   desc.addUntracked<std::string>("logicalFileName","");
 
+  desc.addUntracked<int>("compressionLevel", 9)
+        ->setComment("ROOT compression level of output file.");
+  desc.addUntracked<std::string>("compressionAlgorithm", "ZLIB")
+        ->setComment("Algorithm used to compress data in the ROOT output file, allowed values are ZLIB and LZMA");
+
   //replace with whatever you want to get from the EDM by default
   const std::vector<std::string> keep = {"drop *", "keep FlatTable_*_*_*"};
   edm::OutputModule::fillDescription(desc, keep);
@@ -256,6 +272,8 @@ NanoAODOutputModule::fillDescriptions(edm::ConfigurationDescriptions& descriptio
   edm::ParameterSetDescription branchSet;
   branchSet.setAllowAnything();
   desc.add<edm::ParameterSetDescription>("branches", branchSet);
+
+
 
   descriptions.addDefault(desc);
 

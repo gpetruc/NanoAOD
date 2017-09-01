@@ -4,7 +4,7 @@ process = cms.Process('NANO')
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 process.MessageLogger.cerr.FwkReport.reportEvery = 100
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(100))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
 process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring())
 process.source.fileNames = [
@@ -22,6 +22,8 @@ process.nanoPath = cms.Path(process.nanoSequenceMC)
 process.out = cms.OutputModule("NanoAODOutputModule",
     fileName = cms.untracked.string('nano.root'),
     outputCommands = cms.untracked.vstring("drop *", "keep *_*Table_*_*","keep edmTriggerResults_*_*_*"),
+   #compressionLevel = cms.untracked.int32(9),
+    #compressionAlgorithm = cms.untracked.string("LZMA"),
 
 )
 process.end = cms.EndPath(process.out)  

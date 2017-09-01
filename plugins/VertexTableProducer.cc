@@ -36,6 +36,10 @@
 //#include "CommonTools/Utils/interface/StringCutObjectSelector.h"
 
 #include "PhysicsTools/NanoAOD/interface/FlatTable.h"
+#include "RecoVertex/VertexTools/interface/VertexDistance3D.h"
+#include "RecoVertex/VertexPrimitives/interface/ConvertToFromReco.h"
+#include "RecoVertex/VertexPrimitives/interface/VertexState.h"
+
 //
 // class declaration
 //
@@ -121,10 +125,16 @@ VertexTableProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     pvsTable->addColumnValue<float>("z",(*pvsIn)[0].position().z(),"vertex position z coordinate",FlatTable::FloatColumn);
     pvsTable->addColumnValue<float>("chi2",(*pvsIn)[0].normalizedChi2(),"reduced chi2",FlatTable::FloatColumn);
 
-    
-/*  for(const auto & sv :  *svsIn){
+    // For SV we fill from here only stuff that cannot be created with the SimpleFlatTableProducer 
+    std::vector<float> dlen,dlenSig;
+    VertexDistance3D vdist;
+    for(const auto & sv :  *svsIn){
+       Measurement1D dl= vdist.distance((*pvsIn)[0],VertexState(RecoVertex::convertPos(sv.position()),RecoVertex::convertError(sv.error())));
+       dlen.push_back(dl.value());	
+       dlenSig.push_back(dl.significance());	
     }	
-    svsTable->addColumn<uint8_t>(name_,muons,doc_,FlatTable::UInt8Column);*/
+    svsTable->addColumn<float>("dlen",dlen,"decay length in cm",FlatTable::FloatColumn,10);
+    svsTable->addColumn<float>("dlenSig",dlenSig,"decay length significance",FlatTable::FloatColumn, 10);
  
 
     iEvent.put(std::move(pvsTable),"pvs");
