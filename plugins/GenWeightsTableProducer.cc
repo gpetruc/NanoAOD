@@ -155,7 +155,7 @@ class GenWeightsTableProducer : public edm::global::EDProducer<edm::StreamCache<
                 lheScaleTab.reset(new FlatTable(1, "LHEScaleWeights", true));
                 lhePdfTab.reset(new FlatTable(1, "LHEPdfWeights", true));
                 lheNamedTab.reset(new FlatTable(1, "LHENamedWeights", true));
-                if (!hasIssuedWarning_.exchange(false)) {
+                if (!hasIssuedWarning_.exchange(true)) {
                     edm::LogWarning("LHETablesProducer") << "No LHEEventProduct, so there will be no LHE Tables\n";
                 }
             }
