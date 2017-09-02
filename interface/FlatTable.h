@@ -66,13 +66,17 @@ class FlatTable {
 	}
     }
     template<typename T, typename C>
-    void addColumnValue(const std::string & name, const C & value, const std::string & docString, ColumnType type = defaultColumnType<T>()) {
+    void addColumnValue(const std::string & name, const C & value, const std::string & docString, ColumnType type = defaultColumnType<T>(),int mantissaBits=-1) {
         if (!singleton()) throw cms::Exception("LogicError", "addColumnValue works only for singleton tables");
         if (columnIndex(name) != -1) throw cms::Exception("LogicError", "Duplicated column: "+name);
         check_type<T>(type); // throws if type is wrong
         auto & vec = bigVector<T>();
         columns_.emplace_back(name,docString,type,vec.size());
-        vec.push_back(value);
+        if (type==FloatColumn and mantissaBits > 0) {
+            vec.push_back(MiniFloatConverter::reduceMantissaToNbits(value, mantissaBits));
+        } else {
+            vec.push_back(value);
+        }
     }
  
     template<typename T> static ColumnType defaultColumnType() { throw cms::Exception("unsupported type"); }

@@ -41,12 +41,21 @@ genWeightsTable = cms.EDProducer("GenWeightsTableProducer",
     name = cms.string("genEvent"),
     doc  = cms.string("generator weights from GenEventInfoProduct (main per-event weight, may be negative)"),
     genEvent = cms.InputTag("generator"),
+    lheInfo = cms.InputTag("externalLHEProducer"),
+    preferredPDFs = cms.vuint32(91400,260001),
+    namedWeightIDs = cms.vstring(),
+    namedWeightLabels = cms.vstring(),
+    lheWeightPrecision = cms.int32(14),
+    maxPdfWeights = cms.uint32(50), # for NNPDF, keep only the first 50 replicas (save space)
+    debug = cms.untracked.bool(False),
 )
+lheInfoTable = cms.EDProducer("LHETablesProducer",
+    lheInfo = cms.InputTag("externalLHEProducer"),
+)
+
 
 nanoSequence = cms.Sequence(muonSequence + jetSequence + tauSequence + electronSequence+photonSequence+vertexSequence+#metSequence+
         linkedObjects  +
         jetTables + muonTables + tauTables + electronTables + photonTables +  globalTables +vertexTables+ metTables+simpleCleanerTable )
 
-nanoSequenceMC = cms.Sequence(genParticleSequence + nanoSequence + jetMC + genWeightsTable + genParticleTables)
-
-
+nanoSequenceMC = cms.Sequence(genParticleSequence + nanoSequence + jetMC + genWeightsTable + genParticleTables + lheInfoTable)
