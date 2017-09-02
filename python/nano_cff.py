@@ -45,6 +45,8 @@ genWeightsTable = cms.EDProducer("GenWeightsTableProducer",
     preferredPDFs = cms.vuint32(91400,260001),
     namedWeightIDs = cms.vstring(),
     namedWeightLabels = cms.vstring(),
+    lheWeightPrecision = cms.int32(14),
+    maxPdfWeights = cms.uint32(50), # for NNPDF, keep only the first 50 replicas (save space)
     debug = cms.untracked.bool(False),
 )
 lheInfoTable = cms.EDProducer("LHETablesProducer",

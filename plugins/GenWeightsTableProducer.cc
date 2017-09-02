@@ -109,6 +109,8 @@ class GenWeightsTableProducer : public edm::global::EDProducer<edm::StreamCache<
             preferredPDFLHAIDs_(params.getParameter<std::vector<uint32_t>>("preferredPDFs")),
             namedWeightIDs_(params.getParameter<std::vector<std::string>>("namedWeightIDs")),
             namedWeightLabels_(params.getParameter<std::vector<std::string>>("namedWeightLabels")),
+            lheWeightPrecision_(params.getParameter<int32_t>("lheWeightPrecision")),
+            maxPdfWeights_(params.getParameter<uint32_t>("maxPdfWeights")),
             debug_(params.getUntrackedParameter<bool>("debug",false)), debugRun_(debug_.load()),
             hasIssuedWarning_(false)
         {
@@ -196,15 +198,15 @@ class GenWeightsTableProducer : public edm::global::EDProducer<edm::StreamCache<
             } 
 
             outScale.reset(new FlatTable(wScale.size(), "LHEScaleWeight", false));
-            outScale->addColumn<float>("", wScale, weightChoice->scaleWeightsDoc, FlatTable::FloatColumn); 
+            outScale->addColumn<float>("", wScale, weightChoice->scaleWeightsDoc, FlatTable::FloatColumn, lheWeightPrecision_); 
 
             outPdf.reset(new FlatTable(wPDF.size(), "LHEPdfWeight", false));
-            outPdf->addColumn<float>("", wPDF, weightChoice->pdfWeightsDoc, FlatTable::FloatColumn); 
+            outPdf->addColumn<float>("", wPDF, weightChoice->pdfWeightsDoc, FlatTable::FloatColumn, lheWeightPrecision_); 
 
             outNamed.reset(new FlatTable(1, "LHEWeight", true));
             outNamed->addColumnValue<float>("originalXWGTUP", lheProd.originalXWGTUP(), "Nominal event weight in the LHE file", FlatTable::FloatColumn);
             for (unsigned int i = 0, n = wNamed.size(); i < n; ++i) {
-                outNamed->addColumnValue<float>(namedWeightLabels_[i], wNamed[i], "LHE weight for id "+namedWeightIDs_[i]+", relative to nominal", FlatTable::FloatColumn);
+                outNamed->addColumnValue<float>(namedWeightLabels_[i], wNamed[i], "LHE weight for id "+namedWeightIDs_[i]+", relative to nominal", FlatTable::FloatColumn, lheWeightPrecision_);
             }
             
             counter->incLHE(genWeight, wScale, wPDF, wNamed);
@@ -313,8 +315,12 @@ class GenWeightsTableProducer : public edm::global::EDProducer<edm::StreamCache<
                     for (uint32_t lhaid : preferredPDFLHAIDs_) {
                         for (const auto & pw : pdfSetWeightIDs) {
                             if (pw.lhaIDs.first != lhaid) continue;
-                            pdfDoc << pw.lhaIDs.first << " - " << pw.lhaIDs.second << std::endl;
+                            pdfDoc << pw.lhaIDs.first << " - " << pw.lhaIDs.second;
                             weightChoice->pdfWeightIDs = pw.wids;
+                            if (maxPdfWeights_ < pw.wids.size()) {
+                                weightChoice->pdfWeightIDs.resize(maxPdfWeights_); // drop some replicas
+                                pdfDoc << ", truncated to the first " << maxPdfWeights_ << " replicas";
+                            } 
                             weightChoice->pdfWeightsDoc = pdfDoc.str(); 
                             found = true; break;
                         }
@@ -375,6 +381,8 @@ class GenWeightsTableProducer : public edm::global::EDProducer<edm::StreamCache<
         std::vector<uint32_t> preferredPDFLHAIDs_;
         std::vector<std::string> namedWeightIDs_;
         std::vector<std::string> namedWeightLabels_;
+        int lheWeightPrecision_;
+        unsigned int maxPdfWeights_;
 
         mutable std::atomic<bool> debug_, debugRun_, hasIssuedWarning_;
 };
