@@ -6,6 +6,9 @@ from PhysicsTools.NanoAOD.taus_cff import *
 from PhysicsTools.NanoAOD.electrons_cff import *
 from PhysicsTools.NanoAOD.photons_cff import *
 from PhysicsTools.NanoAOD.globals_cff import *
+from PhysicsTools.NanoAOD.genparticles_cff import *
+from PhysicsTools.NanoAOD.vertices_cff import *
+from PhysicsTools.NanoAOD.met_cff import *
 
 
 linkedObjects = cms.EDProducer("PATObjectCrossLinker",
@@ -34,15 +37,6 @@ simpleCleanerTable = cms.EDProducer("NanoAODSimpleCrossCleaner",
 )
 
 
-metTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
-    src = cms.InputTag("slimmedMETs"),
-    name = cms.string("MET"),
-    doc = cms.string("slimmedMET, type-1 corrected PF MET"),
-    singleton = cms.bool(True),  # there's always exactly one MET per event
-    extension = cms.bool(False), # this is the main table for the MET
-    variables = cms.PSet(PTVars),
-)
-
 genWeightsTable = cms.EDProducer("GenWeightsTableProducer",
     name = cms.string("genEvent"),
     doc  = cms.string("generator weights from GenEventInfoProduct (main per-event weight, may be negative)"),
@@ -58,12 +52,10 @@ lheInfoTable = cms.EDProducer("LHETablesProducer",
 )
 
 
-nanoSequence = cms.Sequence(muonSequence + jetSequence + tauSequence + electronSequence+photonSequence+
-        linkedObjects + simpleCleanerTable +
-        jetTables + muonTables + tauTables + electronTables + photonTables + metTable + globalTables + genWeightsTable)
+nanoSequence = cms.Sequence(muonSequence + jetSequence + tauSequence + electronSequence+photonSequence+vertexSequence+#metSequence+
+        linkedObjects  +
+        jetTables + muonTables + tauTables + electronTables + photonTables +  globalTables +vertexTables+ metTables+simpleCleanerTable )
 
-nanoSequenceMC = cms.Sequence(muonSequence + jetSequenceMC + tauSequence + electronSequence+photonSequence+
-        linkedObjects + simpleCleanerTable +
-        jetTablesMC + muonTables + tauTables + electronTables + photonTables + metTable + globalTables)
+nanoSequenceMC = cms.Sequence(genParticleSequence + nanoSequence + jetMC + genWeightsTable + genParticleTables)
 
 

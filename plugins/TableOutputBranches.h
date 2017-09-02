@@ -12,7 +12,7 @@
 class TableOutputBranches {
  public:
     TableOutputBranches(const edm::BranchDescription *desc, const edm::EDGetToken & token ) :
-        m_token(token), m_branchesBooked(false)
+        m_token(token), m_extension(DontKnowYetIfMainOrExtension), m_branchesBooked(false)
     {
         if (desc->className() != "FlatTable") throw cms::Exception("Configuration", "NanoAODOutputModule can only write out FlatTable objects");
     }
