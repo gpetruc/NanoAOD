@@ -16,6 +16,14 @@
 namespace pat {
   
   namespace helper {
+
+    struct AddUserIntFromBool {
+      typedef bool                       value_type;
+      typedef edm::ValueMap<value_type> product_type;
+      template<typename ObjectType>
+      void addData(ObjectType &obj, const std::string & key, const value_type &val) { obj.addUserInt(key, val); }
+    };
+
       template<typename A> 
       class NamedUserDataLoader {
         public:
@@ -53,6 +61,7 @@ namespace pat {
             src_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("src"))),
             userFloats_(iConfig, "userFloats", consumesCollector()), 
             userInts_(iConfig, "userInts", consumesCollector()), 
+            userIntFromBools_(iConfig, "userIntFromBools", consumesCollector()), 
             userCands_(iConfig, "userCands", consumesCollector())
         {
             produces<std::vector<T>>();
@@ -65,7 +74,7 @@ namespace pat {
       static void fillDescriptions(edm::ConfigurationDescriptions & descriptions) {
           edm::ParameterSetDescription desc;
           desc.add<edm::InputTag>("src");
-          for (const std::string & what : { "userFloats", "userInts", "userCands" }) {
+          for (const std::string & what : { "userFloats", "userInts", "userIntFromBools", "userCands" }) {
               edm::ParameterSetDescription descNested;
               descNested.addWildcard<edm::InputTag>("*");
               desc.add<edm::ParameterSetDescription>(what, descNested);
@@ -82,6 +91,7 @@ namespace pat {
       edm::EDGetTokenT<edm::View<T>> src_;
       helper::NamedUserDataLoader<pat::helper::AddUserFloat> userFloats_;
       helper::NamedUserDataLoader<pat::helper::AddUserInt>   userInts_;
+      helper::NamedUserDataLoader<pat::helper::AddUserIntFromBool>   userIntFromBools_;
       helper::NamedUserDataLoader<pat::helper::AddUserCand>  userCands_;
   };
 
@@ -104,6 +114,7 @@ void pat::PATObjectUserDataEmbedder<T>::produce(edm::Event & iEvent, const edm::
     }
     userFloats_.addData(iEvent, ptrs, *out);
     userInts_.addData(iEvent, ptrs, *out);
+    userIntFromBools_.addData(iEvent, ptrs, *out);
     userCands_.addData(iEvent, ptrs, *out);
 
     iEvent.put(std::move(out));
