@@ -13,7 +13,7 @@ vertexTable = cms.EDProducer("VertexTableProducer",
     svSrc = cms.InputTag("slimmedSecondaryVertices"),
     svCut = cms.string(""),
     dlenMin = cms.double(0),
-    dlenSigMin = cms.double(5),
+    dlenSigMin = cms.double(3),
     pvName = cms.string("PV"),
     svName = cms.string("SV"),
     svDoc  = cms.string("secondary vertices from IVF algorithm"),
@@ -21,7 +21,7 @@ vertexTable = cms.EDProducer("VertexTableProducer",
 
 svCandidateTable =  cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("vertexTable"),
-    cut = vertexTable.svCut, #this is redundant as the input tag is set to vertexTable
+    cut = cms.string(""),  #DO NOT further cut here, use vertexTable.svCut
     name = cms.string("SV"),
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(True), 
