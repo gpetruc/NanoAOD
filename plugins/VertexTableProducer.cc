@@ -33,7 +33,7 @@
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/Candidate/interface/VertexCompositePtrCandidate.h"
 
-//#include "CommonTools/Utils/interface/StringCutObjectSelector.h"
+#include "CommonTools/Utils/interface/StringCutObjectSelector.h"
 
 #include "PhysicsTools/NanoAOD/interface/FlatTable.h"
 #include "RecoVertex/VertexTools/interface/VertexDistance3D.h"
@@ -64,11 +64,12 @@ class VertexTableProducer : public edm::stream::EDProducer<> {
       // ----------member data ---------------------------
 
       const edm::EDGetTokenT<std::vector<reco::Vertex>> pvs_;
-      const edm::EDGetTokenT<std::vector<reco::VertexCompositePtrCandidate> > svs_;
+      const edm::EDGetTokenT<edm::View<reco::VertexCompositePtrCandidate> > svs_;
+      const StringCutObjectSelector<reco::Candidate> svCut_;
       const std::string  pvName_;
       const std::string  svName_;
       const std::string svDoc_;
-
+      const double dlenMin_,dlenSigMin_;
 
 };
 
@@ -79,15 +80,19 @@ class VertexTableProducer : public edm::stream::EDProducer<> {
 //
 VertexTableProducer::VertexTableProducer(const edm::ParameterSet& params):
     pvs_(consumes<std::vector<reco::Vertex>>( params.getParameter<edm::InputTag>("pvSrc") )),
-    svs_(consumes<std::vector<reco::VertexCompositePtrCandidate> >( params.getParameter<edm::InputTag>("svSrc") )),
+    svs_(consumes<edm::View<reco::VertexCompositePtrCandidate> >( params.getParameter<edm::InputTag>("svSrc") )),
+    svCut_(params.getParameter<std::string>("svCut") , true),
     pvName_(params.getParameter<std::string>("pvName") ),
     svName_(params.getParameter<std::string>("svName") ),
-    svDoc_(params.getParameter<std::string>("svDoc") )
+    svDoc_(params.getParameter<std::string>("svDoc") ),
+    dlenMin_(params.getParameter<double>("dlenMin") ),
+    dlenSigMin_(params.getParameter<double>("dlenSigMin") )
    
 {
    produces<FlatTable>("pvs");
    produces<FlatTable>("svs");
-  
+   produces<edm::PtrVector<reco::Candidate> >();
+ 
 }
 
 
@@ -114,32 +119,42 @@ VertexTableProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     edm::Handle<std::vector<reco::Vertex>> pvsIn;
     iEvent.getByToken(pvs_, pvsIn);
     auto pvsTable = std::make_unique<FlatTable>(1,pvName_,true);
-
-    edm::Handle<std::vector<reco::VertexCompositePtrCandidate> > svsIn;
-    iEvent.getByToken(svs_, svsIn);
-    auto svsTable = std::make_unique<FlatTable>(svsIn->size(),svName_,false);
-
     pvsTable->addColumnValue<float>("ndof",(*pvsIn)[0].ndof(),"",FlatTable::FloatColumn);
     pvsTable->addColumnValue<float>("x",(*pvsIn)[0].position().x(),"vertex position x coordinate",FlatTable::FloatColumn);
     pvsTable->addColumnValue<float>("y",(*pvsIn)[0].position().y(),"vertex position y coordinate",FlatTable::FloatColumn);
     pvsTable->addColumnValue<float>("z",(*pvsIn)[0].position().z(),"vertex position z coordinate",FlatTable::FloatColumn);
     pvsTable->addColumnValue<float>("chi2",(*pvsIn)[0].normalizedChi2(),"reduced chi2",FlatTable::FloatColumn);
 
-    // For SV we fill from here only stuff that cannot be created with the SimpleFlatTableProducer 
+    edm::Handle<edm::View<reco::VertexCompositePtrCandidate> > svsIn;
+    iEvent.getByToken(svs_, svsIn);
+    auto selCandSv = std::make_unique<PtrVector<reco::Candidate>>();
     std::vector<float> dlen,dlenSig;
     VertexDistance3D vdist;
-    for(const auto & sv :  *svsIn){
-       Measurement1D dl= vdist.distance((*pvsIn)[0],VertexState(RecoVertex::convertPos(sv.position()),RecoVertex::convertError(sv.error())));
-       dlen.push_back(dl.value());	
-       dlenSig.push_back(dl.significance());	
-    }	
+
+    size_t i=0;
+    for (const auto & sv : *svsIn) {
+       if (svCut_(sv)) {
+           Measurement1D dl= vdist.distance((*pvsIn)[0],VertexState(RecoVertex::convertPos(sv.position()),RecoVertex::convertError(sv.error())));
+	   if(dl.value() > dlenMin_ and dl.significance() > dlenSigMin_){
+                dlen.push_back(dl.value());	
+                dlenSig.push_back(dl.significance());	
+	 	edm::Ptr<reco::Candidate> c =  svsIn->ptrAt(i);
+		selCandSv->push_back(c);
+	   }
+       }
+       i++;
+    }
+
+
+    auto svsTable = std::make_unique<FlatTable>(selCandSv->size(),svName_,false);
+    // For SV we fill from here only stuff that cannot be created with the SimpleFlatTableProducer 
     svsTable->addColumn<float>("dlen",dlen,"decay length in cm",FlatTable::FloatColumn,10);
     svsTable->addColumn<float>("dlenSig",dlenSig,"decay length significance",FlatTable::FloatColumn, 10);
  
 
     iEvent.put(std::move(pvsTable),"pvs");
     iEvent.put(std::move(svsTable),"svs");
- 
+    iEvent.put(std::move(selCandSv));
 }
 
 // ------------ method called once each stream before processing any runs, lumis or events  ------------
