@@ -71,6 +71,8 @@ slimmedElectronsWithUserData = cms.EDProducer("PATElectronUserDataEmbedder",
         miniIsoAll = cms.InputTag("isoForEle:miniIsoAll"),
         PFIsoChg = cms.InputTag("isoForEle:PFIsoChg"),
         PFIsoAll = cms.InputTag("isoForEle:PFIsoAll"),
+        ptRatio = cms.InputTag("ptRatioRelForEle:ptRatio"),
+        ptRel = cms.InputTag("ptRatioRelForEle:ptRel"),
         ),
                                               userIntFromBools = cms.PSet(
         mvaSpring16GP_WP90 = cms.InputTag("egmGsfElectronIDs:mvaEleID-Spring16-GeneralPurpose-V1-wp90"),
@@ -82,6 +84,9 @@ slimmedElectronsWithUserData = cms.EDProducer("PATElectronUserDataEmbedder",
         cutbasedID_tight = cms.InputTag("egmGsfElectronIDs:cutBasedElectronID-Summer16-80X-V1-tight"),
         cutbasedID_HLT = cms.InputTag("egmGsfElectronIDs:cutBasedElectronHLTPreselection-Summer16-V1"),
         ),
+                                              userCands = cms.PSet(
+        jetForLepJetVar = cms.InputTag("ptRatioRelForEle:jetForLepJetVar") # warning: Ptr is null if no match is found
+        ),
                                               )
 
 isoForEle = cms.EDProducer("EleIsoValueMapProducer",
@@ -89,6 +94,11 @@ isoForEle = cms.EDProducer("EleIsoValueMapProducer",
                            rho = cms.InputTag("fixedGridRhoFastjetCentralNeutral"),
                            EAFile = cms.FileInPath("RecoEgamma/ElectronIdentification/data/Summer16/effAreaElectrons_cone03_pfNeuHadronsAndPhotons_80X.txt"),
                            )
+
+ptRatioRelForEle = cms.EDProducer("ElectronJetVarProducer",
+                                  srcJet = cms.InputTag("slimmedJets"),
+                                  srcLep = cms.InputTag("slimmedElectrons"),
+                                  )
 
 electronsMCMatchForTable = cms.EDProducer("MCMatcher",  # cut on deltaR, deltaPt/Pt; pick best by deltaR
     src         = electronTable.src,                 # final reco collection
@@ -112,6 +122,6 @@ electronMCTable = cms.EDProducer("CandMCMatchTableProducer",
 )
 
 
-electronSequence = cms.Sequence(egmGsfElectronIDSequence + isoForEle + slimmedElectronsWithUserData + finalElectrons)
+electronSequence = cms.Sequence(egmGsfElectronIDSequence + isoForEle + ptRatioRelForEle + slimmedElectronsWithUserData + finalElectrons)
 electronTables = cms.Sequence ( electronTable)
 electronMC = cms.Sequence(electronsMCMatchForTable + electronMCTable)
