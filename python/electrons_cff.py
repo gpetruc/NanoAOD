@@ -35,6 +35,7 @@ electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        PFIso03_all = Var("userFloat('PFIsoAll')",float,doc="PF isolation dR=0.3, total"),
        tightCharge = Var("isGsfCtfScPixChargeConsistent() + isGsfScPixChargeConsistent()",int,doc="Tight charge criteria (0:none, 1:isGsfScPixChargeConsistent, 2:isGsfCtfScPixChargeConsistent)"),
        convVeto = Var("passConversionVeto()",bool,doc="pass conversion veto"),
+       lostHits = Var("gsfTrack.hitPattern.numberOfLostHits('MISSING_INNER_HITS')","uint8",doc="number of missing inner hits"),
     )
 )
 
