@@ -8,6 +8,9 @@
 <use   name="RecoEgamma/EgammaTools"/>
 <use   name="PhysicsTools/NanoAOD"/>
 <use   name="roothistmatrix"/>
+<use   name="RecoVertex/VertexTools"/>
+<use   name="RecoVertex/VertexPrimitives"/>
+
 <library   file="*.cc" name="PhysicsToolsNanoAODPlugins">
   <flags   EDM_PLUGIN="1"/>
 </library>

@@ -25,7 +25,8 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
                 const std::string & type = varPSet.getParameter<std::string>("type");
                 if (type == "int") vars_.push_back(new IntVar(vname, FlatTable::IntColumn, varPSet));
                 else if (type == "float") vars_.push_back(new FloatVar(vname, FlatTable::FloatColumn, varPSet));
-                else if (type == "bool") vars_.push_back(new BoolVar(vname, FlatTable::UInt8Column, varPSet));
+                else if (type == "uint8") vars_.push_back(new BoolVar(vname, FlatTable::UInt8Column, varPSet));
+                else if (type == "bool") vars_.push_back(new BoolVar(vname, FlatTable::BoolColumn, varPSet));
                 else throw cms::Exception("Configuration", "unsupported type "+type+" for variable "+vname);
             }
 

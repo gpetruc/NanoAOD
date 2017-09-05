@@ -10,7 +10,7 @@
 
 class FlatTable {
   public:
-    enum ColumnType { FloatColumn, IntColumn, UInt8Column }; // We could have other Float types with reduced mantissa, and similar
+    enum ColumnType { FloatColumn, IntColumn, UInt8Column, BoolColumn }; // We could have other Float types with reduced mantissa, and similar
 
     FlatTable() : size_(0) {}
     FlatTable(unsigned int size, const std::string & name, bool singleton, bool extension=false) : size_(size), name_(name), singleton_(singleton), extension_(extension)  {}
@@ -62,17 +62,21 @@ class FlatTable {
         columns_.emplace_back(name,docString,type,vec.size());
         vec.insert(vec.end(), values.begin(), values.end());
 	if(type==FloatColumn and mantissaBits > 0){
-		for(auto & v : vec) v=MiniFloatConverter::reduceMantissaToNbits(v,mantissaBits);
+		for(auto & v : columnData<T>(columns_.size()-1)) v=MiniFloatConverter::reduceMantissaToNbits(v,mantissaBits);
 	}
     }
     template<typename T, typename C>
-    void addColumnValue(const std::string & name, const C & value, const std::string & docString, ColumnType type = defaultColumnType<T>()) {
+    void addColumnValue(const std::string & name, const C & value, const std::string & docString, ColumnType type = defaultColumnType<T>(),int mantissaBits=-1) {
         if (!singleton()) throw cms::Exception("LogicError", "addColumnValue works only for singleton tables");
         if (columnIndex(name) != -1) throw cms::Exception("LogicError", "Duplicated column: "+name);
         check_type<T>(type); // throws if type is wrong
         auto & vec = bigVector<T>();
         columns_.emplace_back(name,docString,type,vec.size());
-        vec.push_back(value);
+        if (type==FloatColumn and mantissaBits > 0) {
+            vec.push_back(MiniFloatConverter::reduceMantissaToNbits(value, mantissaBits));
+        } else {
+            vec.push_back(value);
+        }
     }
  
     template<typename T> static ColumnType defaultColumnType() { throw cms::Exception("unsupported type"); }
@@ -126,7 +130,7 @@ template<> inline void FlatTable::check_type<int>(FlatTable::ColumnType type) {
      if (type != FlatTable::IntColumn) throw cms::Exception("mismatched type");
 }
 template<> inline void FlatTable::check_type<uint8_t>(FlatTable::ColumnType type) {
-     if (type != FlatTable::UInt8Column) throw cms::Exception("mismatched type");
+     if (type != FlatTable::UInt8Column && type != FlatTable::BoolColumn) throw cms::Exception("mismatched type");
 }
 
 

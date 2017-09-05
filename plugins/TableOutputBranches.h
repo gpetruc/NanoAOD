@@ -12,7 +12,7 @@
 class TableOutputBranches {
  public:
     TableOutputBranches(const edm::BranchDescription *desc, const edm::EDGetToken & token ) :
-        m_token(token), m_branchesBooked(false)
+        m_token(token), m_extension(DontKnowYetIfMainOrExtension), m_branchesBooked(false)
     {
         if (desc->className() != "FlatTable") throw cms::Exception("Configuration", "NanoAODOutputModule can only write out FlatTable objects");
     }
@@ -32,10 +32,10 @@ class TableOutputBranches {
     std::string  m_doc;
     UInt_t       m_counter;
     struct NamedBranchPtr {
-        std::string name, title;
+        std::string name, title, rootTypeCode;
         TBranch * branch;
-        NamedBranchPtr(const std::string & aname, const std::string & atitle, TBranch *branchptr = nullptr) : 
-            name(aname), title(atitle), branch(branchptr) {}
+        NamedBranchPtr(const std::string & aname, const std::string & atitle, const std::string & rootType, TBranch *branchptr = nullptr) : 
+            name(aname), title(atitle), rootTypeCode(rootType), branch(branchptr) {}
     };
     TBranch * m_counterBranch;
     std::vector<NamedBranchPtr> m_floatBranches;
