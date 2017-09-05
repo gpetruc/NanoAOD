@@ -6,8 +6,6 @@ finalElectrons = cms.EDFilter("PATElectronRefSelector",
     cut = cms.string("pt > 5 ")
 )
 
-#electron_emuIdHLT_cut_E2 = "(hadronicOverEm()<(0.10-0.03*(?(abs(superCluster().eta())>1.479)?1:0))) && (abs(deltaEtaSuperClusterTrackAtVtx())<(0.01-0.002*(?(abs(superCluster().eta())>1.479)?1:0))) && (abs(deltaPhiSuperClusterTrackAtVtx())<(0.04+0.03*(?(abs(superCluster().eta())>1.479)?1:0))) && ((?(ecalEnergy()>0.)?(1.0/ecalEnergy() - eSuperClusterOverP()/ecalEnergy()):9e9)>-0.05) && ((?(ecalEnergy()>0.)?(1.0/ecalEnergy() - eSuperClusterOverP()/ecalEnergy()):9e9)<(0.01-0.005*(?(abs(superCluster().eta())>1.479)?1:0))) && (full5x5_sigmaIetaIeta()<(0.011+0.019*(?(abs(superCluster().eta())>1.479)?1:0)))" # to be debugged
-
 electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("linkedObjects","electrons"),
     cut = cms.string(""), #we should not filter on cross linked collections
@@ -17,7 +15,7 @@ electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     extension = cms.bool(False), # this is the main table for the electrons
     variables = cms.PSet(CandVars,
        jet = Var("?hasUserCand('jet')?userCand('jet').key():-1", int, doc="index of the associated jet (-1 if none)"),
-#       emuIdHLT = Var(electron_emuIdHLT_cut_E2,bool,doc="passes emulated HLT electron ID (E2 version)"),
+       photon = Var("?overlaps('photons').size()>0?overlaps('photons')[0].key():-1", int, doc="index of the associated photon (-1 if none)"),
        pterr = Var("gsfTrack().ptError()",float,doc="pt error of the GSF track"),
        dxy = Var("dB('PV2D')",float,doc="dxy (with sign)"),
        sip3d = Var("abs(dB('PV3D')/edB('PV3D'))",float,doc="SIP_3D"),
@@ -35,7 +33,8 @@ electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        miniPFIso_all = Var("userFloat('miniIsoAll')",float,doc="mini PF isolation, total"),
        PFIso03_chg = Var("userFloat('PFIsoChg')",float,doc="PF isolation dR=0.3, charged component"),
        PFIso03_all = Var("userFloat('PFIsoAll')",float,doc="PF isolation dR=0.3, total"),
-#       ecalEnergy = Var("parentSuperCluster().energy()/energy()",float,doc="energy of the PF moustache SC over default energy",precision=10),
+       tightCharge = Var("isGsfCtfScPixChargeConsistent() + isGsfScPixChargeConsistent()",int,doc="Tight charge criteria (0:none, 1:isGsfScPixChargeConsistent, 2:isGsfCtfScPixChargeConsistent)"),
+       convVeto = Var("passConversionVeto()",bool,doc="pass conversion veto"),
     )
 )
 
