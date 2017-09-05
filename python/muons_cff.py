@@ -2,7 +2,7 @@ import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import *
 
 finalMuons = cms.EDFilter("PATMuonRefSelector",
-    src = cms.InputTag("slimmedMuons"),
+    src = cms.InputTag("slimmedMuonsWithUserData"),
     cut = cms.string("pt > 3 && track.isNonnull && isLooseMuon")
 )
 
@@ -22,6 +22,20 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         mediumId = Var("isPFMuon && innerTrack.validFraction >= 0.49 && ( isGlobalMuon && globalTrack.normalizedChi2 < 3 && combinedQuality.chi2LocalPosition < 12 && combinedQuality.trkKink < 20 && segmentCompatibility >= 0.303 || segmentCompatibility >= 0.451 )", bool, doc = "POG Medium muon ID (2016 tune)"),
     ),
 )
+
+isoForMu = cms.EDProducer("MuonIsoValueMapProducer",
+                          src = cms.InputTag("slimmedMuons"),
+                          rho = cms.InputTag("fixedGridRhoFastjetCentralNeutral"),
+                          EAFile = cms.FileInPath("RecoEgamma/ElectronIdentification/data/Summer16/effAreaElectrons_cone03_pfNeuHadronsAndPhotons_80X.txt"),
+                          )
+
+slimmedMuonsWithUserData = cms.EDProducer("PATMuonUserDataEmbedder",
+                                          src = cms.InputTag("slimmedMuons"),
+                                          userFloats = cms.PSet(
+        miniIsoChg = cms.InputTag("isoForMu:miniIsoChg"),
+        miniIsoAll = cms.InputTag("isoForMu:miniIsoAll"),
+        ),
+                                              )
 
 muonsMCMatchForTable = cms.EDProducer("MCMatcher",       # cut on deltaR, deltaPt/Pt; pick best by deltaR
     src         = muonTable.src,                         # final reco collection
@@ -44,7 +58,7 @@ muonMCTable = cms.EDProducer("CandMCMatchTableProducer",
     docString = cms.string("MC matching to status==1 muons"),
 )
 
-muonSequence = cms.Sequence(finalMuons)
+muonSequence = cms.Sequence(isoForMu + slimmedMuonsWithUserData + finalMuons)
 muonMC = cms.Sequence(muonsMCMatchForTable + muonMCTable)
 muonTables = cms.Sequence ( muonTable)
 
