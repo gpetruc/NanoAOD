@@ -29,6 +29,7 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         miniPFIso_all = Var("userFloat('miniIsoAll')",float,doc="mini PF isolation, total (with scaled rho*EA PU corrections)"),
         PFIso03_chg = Var("pfIsolationR03().sumChargedHadronPt",float,doc="PF isolation dR=0.3, charged component"),
         PFIso03_all = Var("(pfIsolationR03().sumChargedHadronPt + max(pfIsolationR03().sumNeutralHadronEt + pfIsolationR03().sumPhotonEt - pfIsolationR03().sumPUPt/2,0.0))",float,doc="PF isolation dR=0.3, total (deltaBeta corrections)"),
+        tightCharge = Var("?(muonBestTrack().ptError()/muonBestTrack().pt() < 0.2)?2:0",int,doc="Tight charge criterion using pterr/pt of muonBestTrack (0:fail, 2:pass)"),
     ),
 )
 

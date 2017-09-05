@@ -58,6 +58,9 @@ class PATObjectCrossLinker : public edm::stream::EDProducer<> {
       void matchOneToMany(const auto & refProdOne, auto & itemsOne, const std::string & nameOne,
                     const auto & refProdMany, auto& itemsMany, const std::string & nameMany);
 
+      void matchElectronToPhoton(const auto & refProdOne, auto & itemsOne, const std::string & nameOne,
+                    const auto & refProdMany, auto& itemsMany, const std::string & nameMany);
+
       //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
       //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
       //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
@@ -117,7 +120,26 @@ void PATObjectCrossLinker::matchOneToMany(const auto & refProdOne, auto & itemsO
         edm::PtrVector<reco::Candidate> overlaps(refProdMany.id());
         size_t mi=0;
         for(auto & m: itemsMany){
-            if(matchByCommonSourceCandidatePtr(j,m)){
+	    if(matchByCommonSourceCandidatePtr(j,m) && (!m.hasUserCand(nameOne))){
+                m.addUserCand(nameOne,reco::CandidatePtr(refProdOne.id(), ji, refProdOne.productGetter()));
+                overlaps.push_back(reco::CandidatePtr(refProdMany.id(), mi, refProdMany.productGetter()));
+            }
+            mi++;
+        }
+    j.setOverlaps(nameMany,overlaps);
+    ji++;
+   } 
+}
+
+void PATObjectCrossLinker::matchElectronToPhoton(const auto & refProdOne, auto & itemsOne, const std::string & nameOne,
+		    const auto & refProdMany, auto& itemsMany, const std::string & nameMany)
+{
+    size_t ji=0;
+    for(auto & j: itemsOne) {
+        edm::PtrVector<reco::Candidate> overlaps(refProdMany.id());
+        size_t mi=0;
+        for(auto & m: itemsMany){
+	    if(matchByCommonParentSuperClusterRef(j,m) && (!m.hasUserCand(nameOne))){
                 m.addUserCand(nameOne,reco::CandidatePtr(refProdOne.id(), ji, refProdOne.productGetter()));
                 overlaps.push_back(reco::CandidatePtr(refProdMany.id(), mi, refProdMany.productGetter()));
             }
@@ -168,6 +190,7 @@ PATObjectCrossLinker::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     matchOneToMany(jetRefProd,*jets,"jet",tauRefProd,*taus,"taus");
     matchOneToMany(jetRefProd,*jets,"jet",phRefProd,*photons,"photons");
 
+    matchElectronToPhoton(eleRefProd,*electrons,"electron",phRefProd,*photons,"photons");
 
     iEvent.put(std::move(jets),"jets");
     iEvent.put(std::move(muons),"muons");
