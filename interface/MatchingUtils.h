@@ -14,6 +14,13 @@ bool matchByCommonSourceCandidatePtr(const auto & c1, const auto & c2) {
     }
     return false;
 }
+
+bool matchByCommonParentSuperClusterRef(const auto & c1, const auto & c2) {
+  auto c1s = c1.parentSuperCluster();
+  auto c2s = c2.parentSuperCluster();
+  return (c1s == c2s);
+}
+
 /*
 template<typename I>
 std::pair<const I &,float> bestMatch(auto item, auto targetColl,const StringCutObjectSelector<I> & cut="1") {
