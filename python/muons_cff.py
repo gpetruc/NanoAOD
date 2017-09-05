@@ -3,7 +3,7 @@ from PhysicsTools.NanoAOD.common_cff import *
 
 finalMuons = cms.EDFilter("PATMuonRefSelector",
     src = cms.InputTag("slimmedMuons"),
-    cut = cms.string("pt > 5 && track.isNonnull && (isGlobalMuon || isTrackerMuon) && isPFMuon")
+    cut = cms.string("pt > 3 && track.isNonnull && isLooseMuon")
 )
 
 muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
