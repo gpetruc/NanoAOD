@@ -133,17 +133,17 @@ IsoValueMapProducer<T>::doMiniIso(edm::Event& iEvent){
     miniIsoAll.push_back(chg+std::max(0.0,neu+pho-(*rho)*ea));
   }
   
-  edm::ValueMap<float> miniIsoChgV;
-  edm::ValueMap<float>::Filler fillerChg(miniIsoChgV);
+  std::unique_ptr<edm::ValueMap<float>> miniIsoChgV(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler fillerChg(*miniIsoChgV);
   fillerChg.insert(src,miniIsoChg.begin(),miniIsoChg.end());
   fillerChg.fill();
-  edm::ValueMap<float> miniIsoAllV;
-  edm::ValueMap<float>::Filler fillerAll(miniIsoAllV);
+  std::unique_ptr<edm::ValueMap<float>> miniIsoAllV(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler fillerAll(*miniIsoAllV);
   fillerAll.insert(src,miniIsoAll.begin(),miniIsoAll.end());
   fillerAll.fill();
 
-  iEvent.put(std::make_unique<edm::ValueMap<float>>(miniIsoChgV),"miniIsoChg");
-  iEvent.put(std::make_unique<edm::ValueMap<float>>(miniIsoAllV),"miniIsoAll");
+  iEvent.put(std::move(miniIsoChgV),"miniIsoChg");
+  iEvent.put(std::move(miniIsoAllV),"miniIsoAll");
 }
 
 
@@ -175,17 +175,17 @@ IsoValueMapProducer<pat::Electron>::doPFIsoEGM(edm::Event& iEvent){
     PFIsoAll.push_back(chg+std::max(0.0,neu+pho-(*rho)*ea));
   }
   
-  edm::ValueMap<float> PFIsoChgV;
-  edm::ValueMap<float>::Filler fillerChg(PFIsoChgV);
+  std::unique_ptr<edm::ValueMap<float>> PFIsoChgV(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler fillerChg(*PFIsoChgV);
   fillerChg.insert(src,PFIsoChg.begin(),PFIsoChg.end());
   fillerChg.fill();
-  edm::ValueMap<float> PFIsoAllV;
-  edm::ValueMap<float>::Filler fillerAll(PFIsoAllV);
+  std::unique_ptr<edm::ValueMap<float>> PFIsoAllV(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler fillerAll(*PFIsoAllV);
   fillerAll.insert(src,PFIsoAll.begin(),PFIsoAll.end());
   fillerAll.fill();
 
-  iEvent.put(std::make_unique<edm::ValueMap<float>>(PFIsoChgV),"PFIsoChg");
-  iEvent.put(std::make_unique<edm::ValueMap<float>>(PFIsoAllV),"PFIsoAll");
+  iEvent.put(std::move(PFIsoChgV),"PFIsoChg");
+  iEvent.put(std::move(PFIsoAllV),"PFIsoAll");
 
 }
 
