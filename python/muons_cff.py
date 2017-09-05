@@ -39,11 +39,22 @@ isoForMu = cms.EDProducer("MuonIsoValueMapProducer",
                           EAFile = cms.FileInPath("RecoEgamma/ElectronIdentification/data/Summer16/effAreaElectrons_cone03_pfNeuHadronsAndPhotons_80X.txt"),
                           )
 
+ptRatioRelForMu = cms.EDProducer("MuonJetVarProducer",
+                                  srcJet = cms.InputTag("slimmedJets"),
+                                  srcLep = cms.InputTag("slimmedMuons"),
+                                  )
+
+
 slimmedMuonsWithUserData = cms.EDProducer("PATMuonUserDataEmbedder",
                                           src = cms.InputTag("slimmedMuons"),
                                           userFloats = cms.PSet(
         miniIsoChg = cms.InputTag("isoForMu:miniIsoChg"),
         miniIsoAll = cms.InputTag("isoForMu:miniIsoAll"),
+        ptRatio = cms.InputTag("ptRatioRelForMu:ptRatio"),
+        ptRel = cms.InputTag("ptRatioRelForMu:ptRel"),
+        ),
+                                          userCands = cms.PSet(
+        jetForLepJetVar = cms.InputTag("ptRatioRelForMu:jetForLepJetVar") # warning: Ptr is null if no match is found
         ),
                                               )
 
@@ -68,7 +79,7 @@ muonMCTable = cms.EDProducer("CandMCMatchTableProducer",
     docString = cms.string("MC matching to status==1 muons"),
 )
 
-muonSequence = cms.Sequence(isoForMu + slimmedMuonsWithUserData + finalMuons)
+muonSequence = cms.Sequence(isoForMu + ptRatioRelForMu + slimmedMuonsWithUserData + finalMuons)
 muonMC = cms.Sequence(muonsMCMatchForTable + muonMCTable)
 muonTables = cms.Sequence ( muonTable)
 
