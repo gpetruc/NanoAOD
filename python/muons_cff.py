@@ -3,7 +3,7 @@ from PhysicsTools.NanoAOD.common_cff import *
 
 finalMuons = cms.EDFilter("PATMuonRefSelector",
     src = cms.InputTag("slimmedMuons"),
-    cut = cms.string("pt > 5 && track.isNonnull && (isGlobalMuon || isTrackerMuon) && isPFMuon")
+    cut = cms.string("pt > 3 && track.isNonnull && isLooseMuon")
 )
 
 muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
@@ -23,7 +23,28 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     ),
 )
 
+muonsMCMatchForTable = cms.EDProducer("MCMatcher",       # cut on deltaR, deltaPt/Pt; pick best by deltaR
+    src         = muonTable.src,                         # final reco collection
+    matched     = cms.InputTag("finalGenParticles"),     # final mc-truth particle collection
+    mcPdgId     = cms.vint32(13),               # one or more PDG ID (13 = mu); absolute values (see below)
+    checkCharge = cms.bool(False),              # True = require RECO and MC objects to have the same charge
+    mcStatus    = cms.vint32(1),                # PYTHIA status code (1 = stable, 2 = shower, 3 = hard scattering)
+    maxDeltaR   = cms.double(0.3),              # Minimum deltaR for the match
+    maxDPtRel   = cms.double(0.5),              # Minimum deltaPt/Pt for the match
+    resolveAmbiguities    = cms.bool(True),     # Forbid two RECO objects to match to the same GEN object
+    resolveByMatchQuality = cms.bool(True),    # False = just match input in order; True = pick lowest deltaR pair first
+)
+
+muonMCTable = cms.EDProducer("CandMCMatchTableProducer",
+    src     = muonTable.src,
+    mcMap   = cms.InputTag("muonsMCMatchForTable"),
+    objName = muonTable.name,
+    objType = muonTable.name, #cms.string("Muon"),
+    branchName = cms.string("mcMatch"),
+    docString = cms.string("MC matching to status==1 muons"),
+)
 
 muonSequence = cms.Sequence(finalMuons)
+muonMC = cms.Sequence(muonsMCMatchForTable + muonMCTable)
 muonTables = cms.Sequence ( muonTable)
 

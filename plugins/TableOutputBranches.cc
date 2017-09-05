@@ -18,13 +18,16 @@ TableOutputBranches::defineBranchesFromFirstEvent(const FlatTable & tab)
         const std::string & var=tab.columnName(i);
         switch(tab.columnType(i)){
             case (FlatTable::FloatColumn):
-                m_floatBranches.emplace_back(var, tab.columnDoc(i));
+                m_floatBranches.emplace_back(var, tab.columnDoc(i), "F");
                 break;
             case (FlatTable::IntColumn):
-                m_intBranches.emplace_back(var, tab.columnDoc(i));
+                m_intBranches.emplace_back(var, tab.columnDoc(i), "I");
                 break;
             case (FlatTable::UInt8Column):
-                m_uint8Branches.emplace_back(var, tab.columnDoc(i));
+                m_uint8Branches.emplace_back(var, tab.columnDoc(i), "b");
+                break;
+            case (FlatTable::BoolColumn):
+                m_uint8Branches.emplace_back(var, tab.columnDoc(i), "O");
                 break;
         }
     }
@@ -49,20 +52,12 @@ TableOutputBranches::branch(TTree &tree)
         }
     }
     std::string varsize = m_singleton ? "" : "[n" + m_baseName + "]";
-    for (auto & pair : m_floatBranches) {
-        std::string branchName = makeBranchName(m_baseName, pair.name);
-        pair.branch = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/F").c_str());
-        pair.branch->SetTitle(pair.title.c_str());
-    }
-    for (auto & pair : m_intBranches) {
-        std::string branchName = makeBranchName(m_baseName, pair.name);
-        pair.branch = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/I").c_str());
-        pair.branch->SetTitle(pair.title.c_str());
-    }
-    for (auto & pair : m_uint8Branches) {
-        std::string branchName = makeBranchName(m_baseName, pair.name);
-        pair.branch = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/b").c_str());
-        pair.branch->SetTitle(pair.title.c_str());
+    for ( std::vector<NamedBranchPtr> * branches : { & m_floatBranches, & m_intBranches, & m_uint8Branches } ) {
+        for (auto & pair : *branches) {
+            std::string branchName = makeBranchName(m_baseName, pair.name);
+            pair.branch = tree.Branch(branchName.c_str(), (void*)nullptr, (branchName + varsize + "/" + pair.rootTypeCode).c_str());
+            pair.branch->SetTitle(pair.title.c_str());
+        }
     }
 }
 

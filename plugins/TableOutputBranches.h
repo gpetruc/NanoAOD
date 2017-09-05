@@ -32,10 +32,10 @@ class TableOutputBranches {
     std::string  m_doc;
     UInt_t       m_counter;
     struct NamedBranchPtr {
-        std::string name, title;
+        std::string name, title, rootTypeCode;
         TBranch * branch;
-        NamedBranchPtr(const std::string & aname, const std::string & atitle, TBranch *branchptr = nullptr) : 
-            name(aname), title(atitle), branch(branchptr) {}
+        NamedBranchPtr(const std::string & aname, const std::string & atitle, const std::string & rootType, TBranch *branchptr = nullptr) : 
+            name(aname), title(atitle), rootTypeCode(rootType), branch(branchptr) {}
     };
     TBranch * m_counterBranch;
     std::vector<NamedBranchPtr> m_floatBranches;
