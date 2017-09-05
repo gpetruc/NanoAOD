@@ -93,6 +93,7 @@ for treeName in "Events", "Runs", "Lumis":
             counters[b.counter].append(b.name)
         else:
             b.entries = entries
+    c1 = ROOT.TCanvas("c1","c1")
     for counter,countees in counters.iteritems():
         n = tree.Draw(counter+">>htemp")
         if n != 0:
