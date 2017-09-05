@@ -21,7 +21,7 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         jet = Var("?hasUserCand('jet')?userCand('jet').key():-1", int, doc="index of the associated jet (-1 if none)"),
         mediumId = Var("isPFMuon && innerTrack.validFraction >= 0.49 && ( isGlobalMuon && globalTrack.normalizedChi2 < 3 && combinedQuality.chi2LocalPosition < 12 && combinedQuality.trkKink < 20 && segmentCompatibility >= 0.303 || segmentCompatibility >= 0.451 )", bool, doc = "POG Medium muon ID (2016 tune)"),
        miniPFIso_chg = Var("userFloat('miniIsoChg')",float,doc="mini PF isolation, charged component"),
-       miniPFIso_all = Var("userFloat('miniIsoAll')",float,doc="mini PF isolation, neutral+photon component"),
+       miniPFIso_all = Var("userFloat('miniIsoAll')",float,doc="mini PF isolation, total"),
     ),
 )
 
