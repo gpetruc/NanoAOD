@@ -36,9 +36,9 @@ electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        cutBased = Var("userInt('cutbasedID_veto')+userInt('cutbasedID_loose')+userInt('cutbasedID_medium')+userInt('cutbasedID_tight')",int,doc="cut-based ID (0:fail, 1:veto, 2:loose, 3:medium, 4:tight)"),
        cutBased_HLTPreSel = Var("userInt('cutbasedID_HLT')",int,doc="cut-based HLT pre-selection ID"),
        miniPFIso_chg = Var("userFloat('miniIsoChg')",float,doc="mini PF isolation, charged component"),
-       miniPFIso_all = Var("userFloat('miniIsoAll')",float,doc="mini PF isolation, total"),
+       miniPFIso_all = Var("userFloat('miniIsoAll')",float,doc="mini PF isolation, total (with scaled rho*EA PU corrections)"),
        PFIso03_chg = Var("userFloat('PFIsoChg')",float,doc="PF isolation dR=0.3, charged component"),
-       PFIso03_all = Var("userFloat('PFIsoAll')",float,doc="PF isolation dR=0.3, total"),
+       PFIso03_all = Var("userFloat('PFIsoAll')",float,doc="PF isolation dR=0.3, total (with rho*EA PU corrections)"),
 #       ecalEnergy = Var("parentSuperCluster().energy()/energy()",float,doc="energy of the PF moustache SC over default energy",precision=10),
     )
 )
