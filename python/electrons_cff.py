@@ -35,6 +35,11 @@ electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        mvaSpring16HZZ_WPL = Var("userInt('mvaSpring16HZZ_WPL')",bool,doc="MVA HZZ ID loose WP"),
        cutBased = Var("userInt('cutbasedID_veto')+userInt('cutbasedID_loose')+userInt('cutbasedID_medium')+userInt('cutbasedID_tight')",int,doc="cut-based ID (0:fail, 1:veto, 2:loose, 3:medium, 4:tight)"),
        cutBased_HLTPreSel = Var("userInt('cutbasedID_HLT')",int,doc="cut-based HLT pre-selection ID"),
+       miniPFIso_chg = Var("userFloat('miniIsoChg')",float,doc="mini PF isolation, charged component"),
+       miniPFIso_all = Var("userFloat('miniIsoAll')",float,doc="mini PF isolation, total"),
+       PFIso03_chg = Var("userFloat('PFIsoChg')",float,doc="PF isolation dR=0.3, charged component"),
+       PFIso03_all = Var("userFloat('PFIsoAll')",float,doc="PF isolation dR=0.3, total"),
+#       ecalEnergy = Var("parentSuperCluster().energy()/energy()",float,doc="energy of the PF moustache SC over default energy",precision=10),
     )
 )
 
@@ -62,6 +67,10 @@ slimmedElectronsWithUserData = cms.EDProducer("PATElectronUserDataEmbedder",
                                         userFloats = cms.PSet(
         mvaSpring16GP = cms.InputTag("electronMVAValueMapProducer:ElectronMVAEstimatorRun2Spring16GeneralPurposeV1Values"),
         mvaSpring16HZZ = cms.InputTag("electronMVAValueMapProducer:ElectronMVAEstimatorRun2Spring16HZZV1Values"),
+        miniIsoChg = cms.InputTag("isoForEle:miniIsoChg"),
+        miniIsoAll = cms.InputTag("isoForEle:miniIsoAll"),
+        PFIsoChg = cms.InputTag("isoForEle:PFIsoChg"),
+        PFIsoAll = cms.InputTag("isoForEle:PFIsoAll"),
         ),
                                               userIntFromBools = cms.PSet(
         mvaSpring16GP_WP90 = cms.InputTag("egmGsfElectronIDs:mvaEleID-Spring16-GeneralPurpose-V1-wp90"),
@@ -74,6 +83,12 @@ slimmedElectronsWithUserData = cms.EDProducer("PATElectronUserDataEmbedder",
         cutbasedID_HLT = cms.InputTag("egmGsfElectronIDs:cutBasedElectronHLTPreselection-Summer16-V1"),
         ),
                                               )
+
+isoForEle = cms.EDProducer("EleIsoValueMapProducer",
+                           src = cms.InputTag("slimmedElectrons"),
+                           rho = cms.InputTag("fixedGridRhoFastjetCentralNeutral"),
+                           EAFile = cms.FileInPath("RecoEgamma/ElectronIdentification/data/Summer16/effAreaElectrons_cone03_pfNeuHadronsAndPhotons_80X.txt"),
+                           )
 
 electronsMCMatchForTable = cms.EDProducer("MCMatcher",  # cut on deltaR, deltaPt/Pt; pick best by deltaR
     src         = electronTable.src,                 # final reco collection
@@ -96,6 +111,7 @@ electronMCTable = cms.EDProducer("CandMCMatchTableProducer",
     docString = cms.string("MC matching to status==1 electrons or photons"),
 )
 
-electronSequence = cms.Sequence(egmGsfElectronIDSequence + slimmedElectronsWithUserData + finalElectrons)
+
+electronSequence = cms.Sequence(egmGsfElectronIDSequence + isoForEle + slimmedElectronsWithUserData + finalElectrons)
 electronTables = cms.Sequence ( electronTable)
 electronMC = cms.Sequence(electronsMCMatchForTable + electronMCTable)
