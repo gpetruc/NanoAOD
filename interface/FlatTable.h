@@ -10,7 +10,7 @@
 
 class FlatTable {
   public:
-    enum ColumnType { FloatColumn, IntColumn, UInt8Column }; // We could have other Float types with reduced mantissa, and similar
+    enum ColumnType { FloatColumn, IntColumn, UInt8Column, BoolColumn }; // We could have other Float types with reduced mantissa, and similar
 
     FlatTable() : size_(0) {}
     FlatTable(unsigned int size, const std::string & name, bool singleton, bool extension=false) : size_(size), name_(name), singleton_(singleton), extension_(extension)  {}
@@ -130,7 +130,7 @@ template<> inline void FlatTable::check_type<int>(FlatTable::ColumnType type) {
      if (type != FlatTable::IntColumn) throw cms::Exception("mismatched type");
 }
 template<> inline void FlatTable::check_type<uint8_t>(FlatTable::ColumnType type) {
-     if (type != FlatTable::UInt8Column) throw cms::Exception("mismatched type");
+     if (type != FlatTable::UInt8Column && type != FlatTable::BoolColumn) throw cms::Exception("mismatched type");
 }
 
 

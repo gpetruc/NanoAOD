@@ -27,7 +27,7 @@ TriggerOutputBranches::updateTriggerNames(TTree & tree, const edm::TriggerNames 
            if(!found){
 	        NamedBranchPtr nb(name,"Trigger/flag bit"); //FIXME: If the title can be updated we can use it to list the versions _v* that were seen in this file
 	        uint8_t backFillValue=-1;
-	        nb.branch= tree.Branch(nb.name.c_str(), &backFillValue, (name + "/b").c_str()); 
+	        nb.branch= tree.Branch(nb.name.c_str(), &backFillValue, (name + "/O").c_str()); 
                 nb.branch->SetTitle(nb.title.c_str());
 	        nb.idx=j;
                 m_triggerBranches.push_back(nb);
