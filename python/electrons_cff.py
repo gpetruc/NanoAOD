@@ -52,7 +52,7 @@ egmGsfElectronIDs.physicsObjectSrc = cms.InputTag('slimmedElectrons')
 electron_id_vid_modules=[
 'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Summer16_80X_V1_cff',
 'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronHLTPreselecition_Summer16_V1_cff',
-#'RecoEgamma.ElectronIdentification.Identification.heepElectronID_HEEPV70_cff', # requires further adaptation in calling code
+#'RecoEgamma.ElectronIdentification.Identification.heepElectronID_HEEPV70_cff', # add heepIDVarValueMaps to sequence when uncomment
 'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring16_GeneralPurpose_V1_cff',
 'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring16_HZZ_V1_cff',
 ]
@@ -62,6 +62,7 @@ for modname in electron_id_vid_modules:
         _id = getattr(ids,name)
         if hasattr(_id,'idName') and hasattr(_id,'cutFlow'):
             setupVIDSelection(egmGsfElectronIDs,_id)
+from RecoEgamma.ElectronIdentification.heepIdVarValueMapProducer_cfi import *
 
 slimmedElectronsWithUserData = cms.EDProducer("PATElectronUserDataEmbedder",
                                         src = cms.InputTag("slimmedElectrons"),
@@ -94,7 +95,8 @@ slimmedElectronsWithUserData = cms.EDProducer("PATElectronUserDataEmbedder",
 isoForEle = cms.EDProducer("EleIsoValueMapProducer",
                            src = cms.InputTag("slimmedElectrons"),
                            rho = cms.InputTag("fixedGridRhoFastjetCentralNeutral"),
-                           EAFile = cms.FileInPath("RecoEgamma/ElectronIdentification/data/Summer16/effAreaElectrons_cone03_pfNeuHadronsAndPhotons_80X.txt"),
+                           EAFile_MiniIso = cms.FileInPath("RecoEgamma/ElectronIdentification/data/Summer16/effAreaElectrons_cone03_pfNeuHadronsAndPhotons_80X.txt"),
+                           EAFile_PFIso = cms.FileInPath("RecoEgamma/ElectronIdentification/data/Summer16/effAreaElectrons_cone03_pfNeuHadronsAndPhotons_80X.txt"),
                            )
 
 ptRatioRelForEle = cms.EDProducer("ElectronJetVarProducer",

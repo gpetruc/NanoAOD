@@ -36,7 +36,7 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
 isoForMu = cms.EDProducer("MuonIsoValueMapProducer",
                           src = cms.InputTag("slimmedMuons"),
                           rho = cms.InputTag("fixedGridRhoFastjetCentralNeutral"),
-                          EAFile = cms.FileInPath("RecoEgamma/ElectronIdentification/data/Summer16/effAreaElectrons_cone03_pfNeuHadronsAndPhotons_80X.txt"),
+                          EAFile_MiniIso = cms.FileInPath("PhysicsTools/NanoAOD/data/effAreaMuons_cone03_pfNeuHadronsAndPhotons_80X.txt"),
                           )
 
 ptRatioRelForMu = cms.EDProducer("MuonJetVarProducer",

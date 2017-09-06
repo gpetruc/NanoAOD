@@ -44,16 +44,17 @@ class IsoValueMapProducer : public edm::stream::EDProducer<> {
    public:
   explicit IsoValueMapProducer(const edm::ParameterSet &iConfig):
     src_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("src"))),
-    rho_(consumes<double>(iConfig.getParameter<edm::InputTag>("rho"))),
-    ea_((iConfig.getParameter<edm::FileInPath>("EAFile")).fullPath())
+    rho_(consumes<double>(iConfig.getParameter<edm::InputTag>("rho")))
   {
     if ((typeid(T) == typeid(pat::Muon)) || (typeid(T) == typeid(pat::Electron))) {
       produces<edm::ValueMap<float>>("miniIsoChg");
       produces<edm::ValueMap<float>>("miniIsoAll");
+      ea_miniiso_.reset(new EffectiveAreas((iConfig.getParameter<edm::FileInPath>("EAFile_MiniIso")).fullPath()));
     }
     if ((typeid(T) == typeid(pat::Electron))) {
       produces<edm::ValueMap<float>>("PFIsoChg");
       produces<edm::ValueMap<float>>("PFIsoAll");
+      ea_pfiso_.reset(new EffectiveAreas((iConfig.getParameter<edm::FileInPath>("EAFile_PFIso")).fullPath()));
     }
   }
   ~IsoValueMapProducer() {}
@@ -74,7 +75,8 @@ class IsoValueMapProducer : public edm::stream::EDProducer<> {
 
   edm::EDGetTokenT<edm::View<T>> src_;
   edm::EDGetTokenT<double> rho_;
-  EffectiveAreas ea_;
+  std::unique_ptr<EffectiveAreas> ea_miniiso_;
+  std::unique_ptr<EffectiveAreas> ea_pfiso_;
   float getEtaForEA(const T*) const;
   void doMiniIso(edm::Event&);
   void doPFIsoEGM(edm::Event&);
@@ -126,7 +128,7 @@ IsoValueMapProducer<T>::doMiniIso(edm::Event& iEvent){
     auto chg = iso.chargedHadronIso();
     auto neu = iso.neutralHadronIso();
     auto pho = iso.photonIso();
-    auto ea = ea_.getEffectiveArea(fabs(getEtaForEA(obj)));
+    auto ea = ea_miniiso_->getEffectiveArea(fabs(getEtaForEA(obj)));
     float R = 10.0/std::min(std::max(obj->pt(), 50.0),200.0);
     ea *= std::pow(R/0.3,2);
     miniIsoChg.push_back(chg);
@@ -170,7 +172,7 @@ IsoValueMapProducer<pat::Electron>::doPFIsoEGM(edm::Event& iEvent){
     auto chg = iso.sumChargedHadronPt;
     auto neu = iso.sumNeutralHadronEt;
     auto pho = iso.sumPhotonEt;
-    auto ea = ea_.getEffectiveArea(fabs(getEtaForEA(obj)));
+    auto ea = ea_pfiso_->getEffectiveArea(fabs(getEtaForEA(obj)));
     PFIsoChg.push_back(chg);
     PFIsoAll.push_back(chg+std::max(0.0,neu+pho-(*rho)*ea));
   }
