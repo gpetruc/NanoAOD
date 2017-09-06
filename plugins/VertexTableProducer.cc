@@ -39,6 +39,7 @@
 #include "RecoVertex/VertexTools/interface/VertexDistance3D.h"
 #include "RecoVertex/VertexPrimitives/interface/ConvertToFromReco.h"
 #include "RecoVertex/VertexPrimitives/interface/VertexState.h"
+#include "DataFormats/Common/interface/ValueMap.h"
 
 //
 // class declaration
@@ -64,6 +65,7 @@ class VertexTableProducer : public edm::stream::EDProducer<> {
       // ----------member data ---------------------------
 
       const edm::EDGetTokenT<std::vector<reco::Vertex>> pvs_;
+      const edm::EDGetTokenT<edm::ValueMap<float>> pvsScore_;
       const edm::EDGetTokenT<edm::View<reco::VertexCompositePtrCandidate> > svs_;
       const StringCutObjectSelector<reco::Candidate> svCut_;
       const std::string  pvName_;
@@ -80,6 +82,7 @@ class VertexTableProducer : public edm::stream::EDProducer<> {
 //
 VertexTableProducer::VertexTableProducer(const edm::ParameterSet& params):
     pvs_(consumes<std::vector<reco::Vertex>>( params.getParameter<edm::InputTag>("pvSrc") )),
+    pvsScore_(consumes<edm::ValueMap<float>>( params.getParameter<edm::InputTag>("pvSrc") )),
     svs_(consumes<edm::View<reco::VertexCompositePtrCandidate> >( params.getParameter<edm::InputTag>("svSrc") )),
     svCut_(params.getParameter<std::string>("svCut") , true),
     pvName_(params.getParameter<std::string>("pvName") ),
@@ -89,7 +92,8 @@ VertexTableProducer::VertexTableProducer(const edm::ParameterSet& params):
     dlenSigMin_(params.getParameter<double>("dlenSigMin") )
    
 {
-   produces<FlatTable>("pvs");
+   produces<FlatTable>("pv");
+   produces<FlatTable>("otherPVs");
    produces<FlatTable>("svs");
    produces<edm::PtrVector<reco::Candidate> >();
  
@@ -116,14 +120,24 @@ void
 VertexTableProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
     using namespace edm;
+    edm::Handle<edm::ValueMap<float>> pvsScoreIn;
     edm::Handle<std::vector<reco::Vertex>> pvsIn;
     iEvent.getByToken(pvs_, pvsIn);
-    auto pvsTable = std::make_unique<FlatTable>(1,pvName_,true);
-    pvsTable->addColumnValue<float>("ndof",(*pvsIn)[0].ndof(),"",FlatTable::FloatColumn);
-    pvsTable->addColumnValue<float>("x",(*pvsIn)[0].position().x(),"vertex position x coordinate",FlatTable::FloatColumn);
-    pvsTable->addColumnValue<float>("y",(*pvsIn)[0].position().y(),"vertex position y coordinate",FlatTable::FloatColumn);
-    pvsTable->addColumnValue<float>("z",(*pvsIn)[0].position().z(),"vertex position z coordinate",FlatTable::FloatColumn);
-    pvsTable->addColumnValue<float>("chi2",(*pvsIn)[0].normalizedChi2(),"reduced chi2",FlatTable::FloatColumn);
+    iEvent.getByToken(pvsScore_, pvsScoreIn);
+    auto pvTable = std::make_unique<FlatTable>(1,pvName_,true);
+    pvTable->addColumnValue<float>("ndof",(*pvsIn)[0].ndof(),"main primary vertex number of degree of freedom",FlatTable::FloatColumn);
+    pvTable->addColumnValue<float>("x",(*pvsIn)[0].position().x(),"main primary vertex position x coordinate",FlatTable::FloatColumn);
+    pvTable->addColumnValue<float>("y",(*pvsIn)[0].position().y(),"main primary vertex position y coordinate",FlatTable::FloatColumn);
+    pvTable->addColumnValue<float>("z",(*pvsIn)[0].position().z(),"main primary vertex position z coordinate",FlatTable::FloatColumn);
+    pvTable->addColumnValue<float>("chi2",(*pvsIn)[0].normalizedChi2(),"main primary vertex reduced chi2",FlatTable::FloatColumn);
+    pvTable->addColumnValue<int>("npvs",(*pvsIn).size(),"total number of reconstructed primary vertices",FlatTable::IntColumn);
+    pvTable->addColumnValue<float>("score",(*pvsScoreIn).get(pvsIn.id(),0),"main primary vertex score, i.e. sum pt2 of clustered objects",FlatTable::FloatColumn,8);
+
+    auto otherPVsTable = std::make_unique<FlatTable>((*pvsIn).size() >3?3:(*pvsIn).size() ,"Other"+pvName_,false);
+    std::vector<float> pvsz;
+    for(size_t i=0;i < (*pvsIn).size() && i < 3; i++) pvsz.push_back((*pvsIn)[0].position().z());
+    otherPVsTable->addColumn<float>("z",pvsz,"Z position of other primary vertices, excluding the main PV",FlatTable::FloatColumn,8);
+
 
     edm::Handle<edm::View<reco::VertexCompositePtrCandidate> > svsIn;
     iEvent.getByToken(svs_, svsIn);
@@ -152,7 +166,8 @@ VertexTableProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     svsTable->addColumn<float>("dlenSig",dlenSig,"decay length significance",FlatTable::FloatColumn, 10);
  
 
-    iEvent.put(std::move(pvsTable),"pvs");
+    iEvent.put(std::move(pvTable),"pv");
+    iEvent.put(std::move(otherPVsTable),"otherPVs");
     iEvent.put(std::move(svsTable),"svs");
     iEvent.put(std::move(selCandSv));
 }
