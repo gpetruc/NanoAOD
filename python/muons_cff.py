@@ -2,28 +2,27 @@ import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import *
 
 isoForMu = cms.EDProducer("MuonIsoValueMapProducer",
-                          src = cms.InputTag("slimmedMuons"),
-                          rho = cms.InputTag("fixedGridRhoFastjetCentralNeutral"),
-                          EAFile = cms.FileInPath("RecoEgamma/ElectronIdentification/data/Summer16/effAreaElectrons_cone03_pfNeuHadronsAndPhotons_80X.txt"),
-                          )
+    src = cms.InputTag("slimmedMuons"),
+    rho = cms.InputTag("fixedGridRhoFastjetCentralNeutral"),
+    EAFile_MiniIso = cms.FileInPath("PhysicsTools/NanoAOD/data/effAreaMuons_cone03_pfNeuHadronsAndPhotons_80X.txt"),
+)
 
 ptRatioRelForMu = cms.EDProducer("MuonJetVarProducer",
-                                  srcJet = cms.InputTag("slimmedJets"),
-                                  srcLep = cms.InputTag("slimmedMuons"),
-                                  )
-
+    srcJet = cms.InputTag("slimmedJets"),
+    srcLep = cms.InputTag("slimmedMuons"),
+)
 
 slimmedMuonsWithUserData = cms.EDProducer("PATMuonUserDataEmbedder",
-                                          src = cms.InputTag("slimmedMuons"),
-                                          userFloats = cms.PSet(
+     src = cms.InputTag("slimmedMuons"),
+     userFloats = cms.PSet(
         miniIsoChg = cms.InputTag("isoForMu:miniIsoChg"),
         miniIsoAll = cms.InputTag("isoForMu:miniIsoAll"),
         ptRatio = cms.InputTag("ptRatioRelForMu:ptRatio"),
         ptRel = cms.InputTag("ptRatioRelForMu:ptRel"),
-        ),
-                                          userCands = cms.PSet(
+     ),
+     userCands = cms.PSet(
         jetForLepJetVar = cms.InputTag("ptRatioRelForMu:jetForLepJetVar") # warning: Ptr is null if no match is found
-        ),
+     ),
 )
 
 finalMuons = cms.EDFilter("PATMuonRefSelector",
@@ -62,6 +61,7 @@ muonIDTable = cms.EDProducer("MuonIDTableProducer",
     muons = muonTable.src,  # final reco collection
     vertices = cms.InputTag("offlineSlimmedPrimaryVertices"),
 )
+
 
 muonsMCMatchForTable = cms.EDProducer("MCMatcher",       # cut on deltaR, deltaPt/Pt; pick best by deltaR
     src         = muonTable.src,                         # final reco collection

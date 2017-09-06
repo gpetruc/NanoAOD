@@ -105,6 +105,7 @@ class SimpleFlatTableProducer : public SimpleFlatTableProducerBase<T, edm::View<
         SimpleFlatTableProducer( edm::ParameterSet const & params ) :
             SimpleFlatTableProducerBase<T, edm::View<T>>(params),
             singleton_(params.getParameter<bool>("singleton")),
+            maxLen_(params.existsAs<unsigned int>("maxLen") ? params.getParameter<unsigned int>("maxLen") : std::numeric_limits<unsigned int>::max()),
             cut_(!singleton_ ? params.getParameter<std::string>("cut") : "", true) {}
 
         virtual ~SimpleFlatTableProducer() {}
@@ -118,12 +119,14 @@ class SimpleFlatTableProducer : public SimpleFlatTableProducerBase<T, edm::View<
             } else {
                 for (const auto & obj : src) {
                     if (cut_(obj)) selobjs.push_back(&obj);
+		    if(selobjs.size()>=maxLen_) break;
                 }
             }
         } 
 
     protected:
         bool  singleton_;
+	const unsigned int maxLen_;
         const StringCutObjectSelector<T> cut_;
 };
 
