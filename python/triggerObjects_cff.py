@@ -16,7 +16,7 @@ triggerObjectTable = cms.EDProducer("TriggerObjectTableProducer",
             sel = cms.string("type(92) && pt > 7 && coll('hltEgammaCandidates') && filter('*PixelMatchFilter')"), 
             l1seed = cms.string("type(-98) && coll('hltGtStage2Digis:EGamma')"),  l1deltaR = cms.double(0.3),
             #l2seed = cms.string("type(92) && coll('')"),  l2deltaR = cms.double(0.5),
-            qualityBits = cms.string("filter('*CaloIdLTrackIdLIsoVLTrackIsoLeg*Filter') + 2*filter('hltEle*WPTight*TrackIsoFilter') + 4*filter('hltEle*WPLoose*TrackIsoFilter')"), 
+            qualityBits = cms.string("filter('*CaloIdLTrackIdLIsoVL*TrackIso*Filter') + 2*filter('hltEle*WPTight*TrackIsoFilter') + 4*filter('hltEle*WPLoose*TrackIsoFilter')"), 
             qualityBitsDoc = cms.string("1 = CaloIdL_TrackIdL_IsoVL, 2 = WPLoose, 4 = WPTight"),
         ),
         cms.PSet(
