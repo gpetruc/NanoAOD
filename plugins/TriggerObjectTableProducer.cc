@@ -14,6 +14,7 @@
 
 #include "DataFormats/PatCandidates/interface/TriggerObjectStandAlone.h"
 #include "CommonTools/Utils/interface/StringCutObjectSelector.h"
+#include "CommonTools/Utils/interface/StringObjectFunction.h"
 #include "DataFormats/Math/interface/deltaR.h"
 #include "PhysicsTools/NanoAOD/interface/FlatTable.h"
 
@@ -25,14 +26,18 @@ class TriggerObjectTableProducer : public edm::global::EDProducer<> {
         {
             std::vector<edm::ParameterSet> selPSets = iConfig.getParameter<std::vector<edm::ParameterSet>>("selections");
             sels_.reserve(selPSets.size());
-            std::stringstream idstr;
+            std::stringstream idstr, qualitystr;
             idstr << "ID of the object: ";
             for (auto & pset : selPSets) {
                 sels_.emplace_back(pset);
                 idstr << sels_.back().id << " = " << sels_.back().name;
                 if (sels_.size() < selPSets.size()) idstr << ", ";
+                if (!sels_.back().qualityBitsDoc.empty()) { 
+                    qualitystr << sels_.back().qualityBitsDoc << " for " << sels_.back().name << "; ";
+                }
             }
             idDoc_ = idstr.str();
+            bitsDoc_ = qualitystr.str();
 
             produces<FlatTable>();
         }
@@ -44,7 +49,7 @@ class TriggerObjectTableProducer : public edm::global::EDProducer<> {
 
         std::string name_;
         edm::EDGetTokenT<std::vector<pat::TriggerObjectStandAlone>> src_;
-        std::string idDoc_;
+        std::string idDoc_, bitsDoc_;
 
         struct SelectedObject {
             std::string name;
@@ -52,13 +57,17 @@ class TriggerObjectTableProducer : public edm::global::EDProducer<> {
             StringCutObjectSelector<pat::TriggerObjectStandAlone> cut;
             StringCutObjectSelector<pat::TriggerObjectStandAlone> l1cut, l2cut;
             float       l1DR2, l2DR2;
+            StringObjectFunction<pat::TriggerObjectStandAlone> qualityBits;
+            std::string qualityBitsDoc;
 
             SelectedObject(const edm::ParameterSet & pset) :
                 name(pset.getParameter<std::string>("name")),
                 id(pset.getParameter<int>("id")),
                 cut(pset.getParameter<std::string>("sel")),
                 l1cut(""), l2cut(""),
-                l1DR2(-1), l2DR2(-1)
+                l1DR2(-1), l2DR2(-1),
+                qualityBits(pset.getParameter<std::string>("qualityBits")),
+                qualityBitsDoc(pset.getParameter<std::string>("qualityBitsDoc"))
             {
                 if (pset.existsAs<std::string>("l1seed")) {
                     l1cut = StringCutObjectSelector<pat::TriggerObjectStandAlone>(pset.getParameter<std::string>("l1seed"));
@@ -98,7 +107,7 @@ TriggerObjectTableProducer::produce(edm::StreamID, edm::Event& iEvent, const edm
 
     unsigned int nobj = selected.size();
     std::vector<float> pt(nobj,0), eta(nobj,0), phi(nobj,0), l1pt(nobj, 0), l2pt(nobj, 0);
-    std::vector<int>   id(nobj,0);
+    std::vector<int>   id(nobj,0), bits(nobj, 0);
     for (unsigned int i = 0; i < nobj; ++i) {
         const auto & obj = *selected[i].first;
         const auto & sel = *selected[i].second;
@@ -106,6 +115,7 @@ TriggerObjectTableProducer::produce(edm::StreamID, edm::Event& iEvent, const edm
         eta[i] = obj.eta(); 
         phi[i] = obj.phi(); 
         id[i] = sel.id;
+        bits[i] = sel.qualityBits(obj);
         if (sel.l1DR2 > 0) {   
             float best = sel.l1DR2;
             for (const auto & seed : *src) {
@@ -133,6 +143,7 @@ TriggerObjectTableProducer::produce(edm::StreamID, edm::Event& iEvent, const edm
     tab->addColumn<float>("phi", phi, "phi", FlatTable::FloatColumn, 12);
     tab->addColumn<float>("l1pt", l1pt, "pt of associated L1 seed", FlatTable::FloatColumn, 10);
     tab->addColumn<float>("l2pt", l2pt, "pt of associated 'L2' seed (i.e. HLT before tracking/PF)", FlatTable::FloatColumn, 10);
+    tab->addColumn<float>("filterBits", bits, "extra bits of associated information: "+bitsDoc_, FlatTable::FloatColumn, 10);
     iEvent.put(std::move(tab));
 }
 
