@@ -12,6 +12,17 @@ finalTaus = cms.EDFilter("PATTauRefSelector",
 )
 
 ##################### Tables for final output and docs ##########################
+def _tauIdWPMask(pattern, choices, doc=""):
+    return Var(" + ".join(["%d * tauID('%s')" % (pow(2,i), pattern % c) for (i,c) in enumerate(choices)]), "uint8", 
+               doc=doc+": bitmask "+", ".join(["%d = %s" % (pow(2,i),c) for (i,c) in enumerate(choices)]))
+def _tauId2WPMask(pattern,doc):
+    return _tauIdWPMask(pattern,choices=("Loose","Tight"),doc=doc)
+def _tauId5WPMask(pattern,doc):
+    return _tauIdWPMask(pattern,choices=("VLoose","Loose","Medium","Tight","VTight"),doc=doc)
+def _tauId6WPMask(pattern,doc):
+    return _tauIdWPMask(pattern,choices=("VLoose","Loose","Medium","Tight","VTight","VVTight"),doc=doc)
+
+
 tauTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("linkedObjects","taus"),
     cut = cms.string(""), #we should not filter on cross linked collections
@@ -22,22 +33,31 @@ tauTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     variables = cms.PSet(P4Vars,
        jet = Var("?hasUserCand('jet')?userCand('jet').key():-1", int, doc="index of the associated jet (-1 if none)"),
        decayMode = Var("decayMode()",int),
-       idDecayMode = Var("tauID('decayModeFinding')", int),
-       idDecayModeNewDMs = Var("tauID('decayModeFindingNewDMs')", int),
+       idDecayMode = Var("tauID('decayModeFinding')", bool),
+       idDecayModeNewDMs = Var("tauID('decayModeFindingNewDMs')", bool),
+
+       leadTkPtOverTauPt = Var("leadChargedHadrCand.pt/pt ",float, doc="pt of the leading track divided by tau pt",precision=10),
+       leadTkDeltaEta    = Var("leadChargedHadrCand.eta - eta ",float, doc="eta of the leading track, minus tau eta",precision=8),
+       leadTkDeltaPhi    = Var("deltaPhi(leadChargedHadrCand.phi, phi) ",float, doc="phi of the leading track, minus tau phi",precision=8),
+
        dxy = Var("dxy()",float, doc="d_{xy} of lead track with respect to PV, in cm (with sign)",precision=10),
        dz = Var("leadChargedHadrCand().dz() ",float, doc="d_{z} of lead track with respect to PV, in cm (with sign)",precision=14),
-       rawMVArun2 = Var( "tauID('byIsolationMVArun2v1DBoldDMwLTraw')",float, doc="byIsolationMVArun2v1DBoldDMwLT raw output discriminator",precision=10),
-#       rawMVArun2dR03 = Var( 'tauID("byIsolationMVArun2v1DBdR03oldDMwLTraw")',float,doc="byIsolationMVArun2v1DBdR03oldDMwLT raw output discriminator"),
-#       rawMVArun2NewDM = Var( "tauID('byIsolationMVArun2v1DBnewDMwLTraw')",float,doc="byIsolationMVArun2v1DBnewDMwLT raw output discriminator"),
 
- #      idMVArun2NewDM = Var( "idMVArun2NewDM", int, doc="1,2,3,4,5,6 if the tau passes the very loose to very very tight WP of the MVArun2v1DBnewDMwLT discriminator"),
-#       idMVArun2 = Var( "idMVArun2" ,int, doc="1,2,3,4,5,6 if the tau passes the very loose to very very tight WP of the MVArun2v1DBoldDMwLT discriminator"),
-#       idMVArun2dR03 = Var( 'idMVArun2dR03', int, doc="1,2,3,4,5,6 if the tau passes the very loose to very very tight WP of the MVArun2v1DBdR03oldDMwLT discriminator"),
-#   idCI3hit = Var( "idCI3hit" int, doc="1,2,3 if the tau passes the loose, medium, tight WP of the By<X>CombinedIsolationDBSumPtCorr3Hits discriminator"),
-#    idCI3hitdR03 = Var( "idCI3hitdR03" int, doc="1,2,3 if the tau passes the loose, medium, tight WP of the By<X>CombinedIsolationDeltaBetaCorr3HitsdR03 discriminator"),
-#   idAntiMu = Var( "idAntiMu" int, doc="1,2 if the tau passes the loose/tight WP of the againstMuon<X>3 discriminator"),
-#    idAntiE = Var( "idAntiE" int, doc="1,2,3,4,5 if the tau passes the v loose, loose, medium, tight, v tight WP of the againstElectron<X>MVA5 discriminator"),
-#   idAntiErun2 = Var( "idAntiErun2" int, doc="1,2,3,4,5 if the tau passes the v loose, loose, medium, tight, v tight WP of the againstElectron<X>MVA6 discriminator"),
+       # these are too many, we may have to suppress some
+       rawIso = Var( "tauID('byCombinedIsolationDeltaBetaCorrRaw3Hits')", float, doc = "combined isolation (deltaBeta corrections)", precision=10),
+       rawMVAnewDM = Var( "tauID('byIsolationMVArun2v1DBnewDMwLTraw')",float, doc="byIsolationMVArun2v1DBnewDMwLT raw output discriminator",precision=10),
+       rawMVAoldDM = Var( "tauID('byIsolationMVArun2v1DBoldDMwLTraw')",float, doc="byIsolationMVArun2v1DBoldDMwLT raw output discriminator",precision=10),
+       rawMVAoldDMdR03 = Var( "tauID('byIsolationMVArun2v1DBdR03oldDMwLTraw')",float, doc="byIsolationMVArun2v1DBdR03oldDMwLT raw output discriminator",precision=10),
+       rawAntiEle    = Var("tauID('againstElectronMVA6Raw')", float, doc= "Anti-electron MVA discriminator V6 raw output discriminator", precision=10),
+       rawAntiEleCat = Var("tauID('againstElectronMVA6category')", int, doc="Anti-electron MVA discriminator V6 category"),
+       
+       idAntiMu = _tauId2WPMask("againstMuon%s3", doc= "Anti-muon discriminator V3: "),
+       idAntiEle = _tauId5WPMask("againstElectron%sMVA6", doc= "Anti-electron MVA discriminator V6"),
+       idMVAnewDM = _tauId6WPMask( "by%sIsolationMVArun2v1DBnewDMwLT", doc="IsolationMVArun2v1DBnewDMwLT ID working point"),
+       idMVAoldDM = _tauId6WPMask( "by%sIsolationMVArun2v1DBoldDMwLT", doc="IsolationMVArun2v1DBoldDMwLT ID working point"),
+       idMVAoldDMdR03 = _tauId6WPMask( "by%sIsolationMVArun2v1DBdR03oldDMwLT", doc="IsolationMVArun2v1DBdR03oldDMwLT ID working point"),
+    
+
 #   isoCI3hit = Var(  "tauID("byCombinedIsolationDeltaBetaCorrRaw3Hits")" doc="byCombinedIsolationDeltaBetaCorrRaw3Hits raw output discriminator"),
 #   photonOutsideSigCone = Var( "tauID("photonPtSumOutsideSignalCone")" doc="photonPtSumOutsideSignalCone raw output discriminator"),
 
