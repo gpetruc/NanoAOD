@@ -133,9 +133,9 @@ VertexTableProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     pvTable->addColumnValue<int>("npvs",(*pvsIn).size(),"total number of reconstructed primary vertices",FlatTable::IntColumn);
     pvTable->addColumnValue<float>("score",(*pvsScoreIn).get(pvsIn.id(),0),"main primary vertex score, i.e. sum pt2 of clustered objects",FlatTable::FloatColumn,8);
 
-    auto otherPVsTable = std::make_unique<FlatTable>((*pvsIn).size() >3?3:(*pvsIn).size() ,"Other"+pvName_,false);
+    auto otherPVsTable = std::make_unique<FlatTable>((*pvsIn).size() >4?3:(*pvsIn).size()-1,"Other"+pvName_,false);
     std::vector<float> pvsz;
-    for(size_t i=0;i < (*pvsIn).size() && i < 3; i++) pvsz.push_back((*pvsIn)[0].position().z());
+    for(size_t i=1;i < (*pvsIn).size() && i < 4; i++) pvsz.push_back((*pvsIn)[i-1].position().z());
     otherPVsTable->addColumn<float>("z",pvsz,"Z position of other primary vertices, excluding the main PV",FlatTable::FloatColumn,8);
 
 
