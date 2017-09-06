@@ -125,11 +125,11 @@ VertexTableProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     iEvent.getByToken(pvs_, pvsIn);
     iEvent.getByToken(pvsScore_, pvsScoreIn);
     auto pvTable = std::make_unique<FlatTable>(1,pvName_,true);
-    pvTable->addColumnValue<float>("ndof",(*pvsIn)[0].ndof(),"main primary vertex number of degree of freedom",FlatTable::FloatColumn);
-    pvTable->addColumnValue<float>("x",(*pvsIn)[0].position().x(),"main primary vertex position x coordinate",FlatTable::FloatColumn);
-    pvTable->addColumnValue<float>("y",(*pvsIn)[0].position().y(),"main primary vertex position y coordinate",FlatTable::FloatColumn);
-    pvTable->addColumnValue<float>("z",(*pvsIn)[0].position().z(),"main primary vertex position z coordinate",FlatTable::FloatColumn);
-    pvTable->addColumnValue<float>("chi2",(*pvsIn)[0].normalizedChi2(),"main primary vertex reduced chi2",FlatTable::FloatColumn);
+    pvTable->addColumnValue<float>("ndof",(*pvsIn)[0].ndof(),"main primary vertex number of degree of freedom",FlatTable::FloatColumn,8);
+    pvTable->addColumnValue<float>("x",(*pvsIn)[0].position().x(),"main primary vertex position x coordinate",FlatTable::FloatColumn,10);
+    pvTable->addColumnValue<float>("y",(*pvsIn)[0].position().y(),"main primary vertex position y coordinate",FlatTable::FloatColumn,10);
+    pvTable->addColumnValue<float>("z",(*pvsIn)[0].position().z(),"main primary vertex position z coordinate",FlatTable::FloatColumn,16);
+    pvTable->addColumnValue<float>("chi2",(*pvsIn)[0].normalizedChi2(),"main primary vertex reduced chi2",FlatTable::FloatColumn,8);
     pvTable->addColumnValue<int>("npvs",(*pvsIn).size(),"total number of reconstructed primary vertices",FlatTable::IntColumn);
     pvTable->addColumnValue<float>("score",(*pvsScoreIn).get(pvsIn.id(),0),"main primary vertex score, i.e. sum pt2 of clustered objects",FlatTable::FloatColumn,8);
 
