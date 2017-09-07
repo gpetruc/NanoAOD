@@ -8,7 +8,7 @@ from RecoJets.JetProducers.ak4PFJets_cfi import ak4PFJets
 
 #chsForSATkJets = cms.EDFilter("CandPtrSelector", src = cms.InputTag("packedPFCandidates"), cut = cms.string('charge()!=0 && pvAssociationQuality()=="CompatibilityDz" && vertexRef().key()==0'))
 chsForSATkJets = cms.EDFilter("CandPtrSelector", src = cms.InputTag("packedPFCandidates"), cut = cms.string('charge()!=0 && fromPV && vertexRef().key()==0'))
-softActivityJets = ak4PFJets.clone(src = 'chsForSATkJets', doAreaFastjet = False) 
+softActivityJets = ak4PFJets.clone(src = 'chsForSATkJets', doAreaFastjet = False, jetPtMin=1) 
 
 finalJets = cms.EDFilter("PATJetRefSelector",
     src = cms.InputTag("slimmedJets"),
@@ -123,6 +123,11 @@ saJetTable.variables.pt.precision=10
 saJetTable.variables.eta.precision=8
 saJetTable.variables.phi.precision=8
 
+saTable = cms.EDProducer("GlobalVariablesTableProducer",
+    variables = cms.PSet(
+        SoftActivityJetHT = ExtVar( cms.InputTag("softActivityJets"), "candidatescalarsum", doc = "scalar sum of soft activity jet pt" ),
+    )
+)
 
 
 
@@ -214,7 +219,7 @@ genJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
 #before cross linking
 jetSequence = cms.Sequence(chsForSATkJets+softActivityJets+finalJets)
 #after cross linkining
-jetTables = cms.Sequence( jetTable+fatJetTable+subJetTable+saJetTable+saJet2Table+saJet5Table+saJet10Table+bjetMVATable)
+jetTables = cms.Sequence( jetTable+fatJetTable+subJetTable+saJetTable+saJet2Table+saJet5Table+saJet10Table+bjetMVATable+saTable)
 
 #MC only producers and tables
 jetMC = cms.Sequence(jetMCTable+genJetTable)
