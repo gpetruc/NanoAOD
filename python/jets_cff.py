@@ -10,12 +10,13 @@ from RecoJets.JetProducers.ak4PFJets_cfi import ak4PFJets
 chsForSATkJets = cms.EDFilter("CandPtrSelector", src = cms.InputTag("packedPFCandidates"), cut = cms.string('charge()!=0 && fromPV && vertexRef().key()==0'))
 softActivityJets = ak4PFJets.clone(src = 'chsForSATkJets', doAreaFastjet = False) 
 
-
-
 finalJets = cms.EDFilter("PATJetRefSelector",
     src = cms.InputTag("slimmedJets"),
     cut = cms.string("pt > 15")
 )
+
+
+
 
 ##################### Tables for final output and docs ##########################
 
@@ -45,11 +46,48 @@ jetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
 	qgl = Var("userFloat('QGTagger:qgLikelihood')",float,doc="Quark vs Gluon likelihood discriminator",precision=10),
 	nConstituents = Var("numberOfDaughters()",int,doc="Number of particles in the jet"),
 	rawFactor = Var("1.-jecFactor('Uncorrected')",float,doc="1 - Factor to get back to raw pT",precision=6),
+        chHEF = Var("chargedHadronEnergy()/energy()", float, doc="charged Hadron Energy Fraction", precision= 6),
+        neHEF = Var("neutralHadronEnergy()/energy()", float, doc="neutral Hadron Energy Fraction", precision= 6),
+        chEmEF = Var("chargedEmEnergy()/energy()", float, doc="charged Electromagnetic Energy Fraction", precision= 6),
+        neEmEF = Var("neutralEmEnergy()/energy()", float, doc="charged Electromagnetic EnergyFraction", precision= 6),
+
     )
 )
+#jets are not as precise as muons
+jetTable.variables.pt.precision=10
+
+
+bjetMVATable= cms.EDProducer("BJetEnergyRegressionMVATable",
+    src = cms.InputTag("linkedObjects","jets"),
+    pvsrc = cms.InputTag("offlineSlimmedPrimaryVertices"),
+    weightFile =  cms.FileInPath("PhysicsTools/NanoAOD/data/bjet-regression.xml"),
+    collName = cms.string("Jet"),
+    attName = cms.string("bReg"),
+    variablesOrder = cms.vstring(["Jet_pt","nPVs","Jet_eta","Jet_mt","Jet_leadTrackPt","Jet_leptonPtRel","Jet_leptonPt","Jet_leptonDeltaR","Jet_neHEF","Jet_neEmEF","Jet_vtxPt","Jet_vtxMass","Jet_vtx3dL","Jet_vtxNtrk","Jet_vtx3deL"]),
+    variables = cms.PSet(
+	Jet_pt = cms.string("pt"),
+	Jet_eta = cms.string("eta"),
+	Jet_mt = cms.string("mt"),
+	Jet_leptonPt = cms.string("?overlaps('muons').size()>0?overlaps('muons')[0].pt():(?overlaps('electrons').size()>0?overlaps('electrons')[0].pt():0)"),
+	Jet_neHEF = cms.string("neutralHadronEnergy()/energy()"),
+	Jet_neEmEF = cms.string("neutralEmEnergy()/energy()"),
+	Jet_leptonDeltaR = cms.string('''?overlaps('muons').size()>0?deltaR(eta,phi,overlaps('muons')[0].eta,overlaps('muons')[0].phi):
+				(?overlaps('electrons').size()>0?deltaR(eta,phi,overlaps('electrons')[0].eta,overlaps('electrons')[0].phi):
+				0)'''),
+	#Jet_leptonPtRel = cms.string("?overlaps('muons').size()>0?overlaps('muons')[0].userFloat('ptRel'):(?overlaps('electrons').size()>0?overlaps('electrons')[0].userFloat('ptRel'):-1)"),
+	Jet_vtxPt = cms.string("pt"),
+	Jet_vtxMass = cms.string("pt"),
+	Jet_vtx3dL = cms.string("pt"),
+	Jet_vtxNtrk = cms.string("pt"),
+	Jet_vtx3deL = cms.string("pt"),
+    )
+
+)
+
+##### Soft Activity tables
 saJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("softActivityJets"),
-    cut = cms.string("pt > 10"),
+    cut = cms.string(""),
     maxLen = cms.uint32(6),
     name = cms.string("SoftActivityJet"),
     doc  = cms.string("jets clustered from charged candidates compatible with primary vertex (" + chsForSATkJets.cut.value()+")"),
@@ -80,11 +118,13 @@ saJet10Table = saJet2Table.clone(
 )
 
 
-#jets are not as precise as muons
-jetTable.variables.pt.precision=10
+
 saJetTable.variables.pt.precision=10
 saJetTable.variables.eta.precision=8
 saJetTable.variables.phi.precision=8
+
+
+
 
 ## BOOSTED STUFF #################
 fatJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
@@ -142,6 +182,8 @@ fatJetTable.variables.pt.precision=10
 
 
 
+
+
 ## MC STUFF ######################
 jetMCTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("linkedObjects","jets"),
@@ -172,7 +214,7 @@ genJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
 #before cross linking
 jetSequence = cms.Sequence(chsForSATkJets+softActivityJets+finalJets)
 #after cross linkining
-jetTables = cms.Sequence( jetTable+fatJetTable+subJetTable+saJetTable+saJet2Table+saJet5Table+saJet10Table)
+jetTables = cms.Sequence( jetTable+fatJetTable+subJetTable+saJetTable+saJet2Table+saJet5Table+saJet10Table+bjetMVATable)
 
 #MC only producers and tables
 jetMC = cms.Sequence(jetMCTable+genJetTable)
