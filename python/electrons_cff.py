@@ -17,6 +17,7 @@ electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        jet = Var("?hasUserCand('jet')?userCand('jet').key():-1", int, doc="index of the associated jet (-1 if none)"),
        photon = Var("?overlaps('photons').size()>0?overlaps('photons')[0].key():-1", int, doc="index of the associated photon (-1 if none)"),
        ptErr = Var("gsfTrack().ptError()",float,doc="pt error of the GSF track",precision=6),
+       energyErr = Var("p4Error('P4_COMBINATION')*userFloat('eCorr')",float,doc="energy error of the cluster-track combination",precision=6),
        eCorr = Var("userFloat('eCorr')",float,doc="ratio of the calibrated energy/miniaod energy"),
        #dz = Var("abs(dB('PVDZ'))",float,doc="dz (with sign) wrt first PV, in cm",precision=10),
        #dzErr = Var("abs(edB('PVDZ'))",float,doc="dz uncertainty, in cm",precision=6),
@@ -43,6 +44,7 @@ electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        lostHits = Var("gsfTrack.hitPattern.numberOfLostHits('MISSING_INNER_HITS')","uint8",doc="number of missing inner hits"),
     )
 )
+electronTable.variables.pt = Var("pt*userFloat('eCorr')",  float, precision=-1)
 
 
 from PhysicsTools.SelectorUtils.tools.vid_id_tools import setupVIDSelection

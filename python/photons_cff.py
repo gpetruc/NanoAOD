@@ -16,6 +16,7 @@ photonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     variables = cms.PSet(CandVars,
        jet = Var("?hasUserCand('jet')?userCand('jet').key():-1", int, doc="index of the associated jet (-1 if none)"),
        electron = Var("?hasUserCand('electron')?userCand('electron').key():-1", int, doc="index of the associated electron (-1 if none)"),
+       energyErr = Var("getCorrectedEnergyError('regression2')*userFloat('eCorr')",float,doc="energy error of the cluster from regression",precision=6),
        eCorr = Var("userFloat('eCorr')",float,doc="ratio of the calibrated energy/miniaod energy"),
        r9 = Var("full5x5_r9()",float,doc="R9 of the supercluster, calculated with full 5x5 region",precision=10),
        sieie = Var("full5x5_sigmaIetaIeta()",float,doc="sigma_IetaIeta of the supercluster, calculated with full 5x5 region",precision=10),
@@ -24,7 +25,7 @@ photonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        pixelSeed = Var("hasPixelSeed()",bool,doc="has pixel seed"),
     )
 )
-
+photonTable.variables.pt = Var("pt*userFloat('eCorr')",  float, precision=-1)
 
 # ADD egmPhotonIDSequence when uncomment
 #
