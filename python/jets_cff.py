@@ -203,7 +203,7 @@ jetMCTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     extension = cms.bool(True), # this is an extension  table for the jets
     variables = cms.PSet(
         partonFlavour = Var("partonFlavour()", int, doc="flavour from parton matching"),
-        hadroFlavour = Var("hadronFlavour()", int, doc="flavour from hadron ghost clustering"),
+        hadronFlavour = Var("hadronFlavour()", int, doc="flavour from hadron ghost clustering"),
         genJetIdx = Var("?genJetFwdRef().backRef().isNonnull()?genJetFwdRef().backRef().key():-1", int, doc="index of matched gen jet"),
     )
 )
