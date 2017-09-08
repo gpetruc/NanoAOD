@@ -18,43 +18,64 @@ photonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        electron = Var("?hasUserCand('electron')?userCand('electron').key():-1", int, doc="index of the associated electron (-1 if none)"),
        r9 = Var("full5x5_r9()",float,doc="R9 of the supercluster, calculated with full 5x5 region",precision=10),
        sieie = Var("full5x5_sigmaIetaIeta()",float,doc="sigma_IetaIeta of the supercluster, calculated with full 5x5 region",precision=10),
-#       cutBased = Var("userInt('cutbasedID_loose')+userInt('cutbasedID_medium')+userInt('cutbasedID_tight')",int,doc="cut-based ID (0:fail, 1::loose, 2:medium, 3:tight)"),
+       cutBased = Var("userInt('cutbasedID_loose')+userInt('cutbasedID_medium')+userInt('cutbasedID_tight')",int,doc="cut-based ID (0:fail, 1::loose, 2:medium, 3:tight)"),
        electronVeto = Var("passElectronVeto()",bool,doc="pass electron veto"),
        pixelSeed = Var("hasPixelSeed()",bool,doc="has pixel seed"),
+       mvaID = Var("userFloat('mvaID')",float,doc="MVA ID score",precision=10),
+       mvaID_WP90 = Var("userInt('mvaID_WP90')",bool,doc="MVA ID WP90"),
+       mvaID_WP80 = Var("userInt('mvaID_WP90')",bool,doc="MVA ID WP80"),
+       PFIso03_chg = Var("userFloat('PFIsoChg')",float,doc="PF isolation dR=0.3, charged component (with rho*EA PU corrections)"),
+       PFIso03_all = Var("userFloat('PFIsoAll')",float,doc="PF isolation dR=0.3, total (with rho*EA PU corrections)"),
+       hoe = Var("hadronicOverEm()",float,doc="H over E",precision=8),
     )
 )
 
-
-# ADD egmPhotonIDSequence when uncomment
-#
-#from PhysicsTools.SelectorUtils.tools.vid_id_tools import setupVIDSelection
-#from RecoEgamma.PhotonIdentification.egmPhotonIDs_cfi import *
-#from RecoEgamma.PhotonIdentification.PhotonIDValueMapProducer_cfi import *
-#from RecoEgamma.PhotonIdentification.PhotonMVAValueMapProducer_cfi import *
-#from RecoEgamma.PhotonIdentification.PhotonRegressionValueMapProducer_cfi import *
-#from RecoEgamma.EgammaIsolationAlgos.egmPhotonIsolationMiniAOD_cff import *
-#egmPhotonIDSequence = cms.Sequence(cms.Task(egmPhotonIsolationMiniAODTask,photonIDValueMapProducer,photonMVAValueMapProducer,egmPhotonIDs,photonRegressionValueMapProducer))
-#egmPhotonIDs.physicsObjectIDs = cms.VPSet()
-#egmPhotonIDs.physicsObjectSrc = cms.InputTag('slimmedPhotons')
-#photon_id_vid_modules=[
-#'RecoEgamma.PhotonIdentification.Identification.cutBasedPhotonID_Spring16_V2p2_cff',
-#]
-#for modname in photon_id_vid_modules: 
-#    ids= __import__(modname, globals(), locals(), ['idName','cutFlow'])
-#    for name in dir(ids):
-#        _id = getattr(ids,name)
-#        if hasattr(_id,'idName') and hasattr(_id,'cutFlow'):
-#            setupVIDSelection(egmPhotonIDs,_id)
+from PhysicsTools.SelectorUtils.tools.vid_id_tools import setupVIDSelection
+from RecoEgamma.PhotonIdentification.egmPhotonIDs_cfi import *
+from RecoEgamma.PhotonIdentification.PhotonIDValueMapProducer_cfi import *
+from RecoEgamma.PhotonIdentification.PhotonMVAValueMapProducer_cfi import *
+from RecoEgamma.PhotonIdentification.PhotonRegressionValueMapProducer_cfi import *
+from RecoEgamma.EgammaIsolationAlgos.egmPhotonIsolationMiniAOD_cff import *
+egmPhotonIDSequence = cms.Sequence(cms.Task(egmPhotonIsolationMiniAODTask,photonIDValueMapProducer,photonMVAValueMapProducer,egmPhotonIDs,photonRegressionValueMapProducer))
+egmPhotonIDs.physicsObjectIDs = cms.VPSet()
+egmPhotonIDs.physicsObjectSrc = cms.InputTag('slimmedPhotons')
+photon_id_vid_modules=[
+'RecoEgamma.PhotonIdentification.Identification.cutBasedPhotonID_Spring16_V2p2_cff',
+'RecoEgamma.PhotonIdentification.Identification.mvaPhotonID_Spring16_nonTrig_V1_cff',
+]
+for modname in photon_id_vid_modules: 
+    ids= __import__(modname, globals(), locals(), ['idName','cutFlow'])
+    for name in dir(ids):
+        _id = getattr(ids,name)
+        if hasattr(_id,'idName') and hasattr(_id,'cutFlow'):
+            setupVIDSelection(egmPhotonIDs,_id)
 
 slimmedPhotonsWithUserData = cms.EDProducer("PATPhotonUserDataEmbedder",
                                             src = cms.InputTag("slimmedPhotons"),
+                                            userFloats = cms.PSet(
+            mvaID = cms.InputTag("photonMVAValueMapProducer:PhotonMVAEstimatorRun2Spring16NonTrigV1Values"),
+            PFIsoChg = cms.InputTag("isoForPho:PFIsoChg"),
+            PFIsoAll = cms.InputTag("isoForPho:PFIsoAll"),
+            ),
                                             userIntFromBools = cms.PSet(
-#            cutbasedID_loose = cms.InputTag("egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-loose"),
-#            cutbasedID_medium = cms.InputTag("egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-medium"),
-#            cutbasedID_tight = cms.InputTag("egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-tight"),
+            cutbasedID_loose = cms.InputTag("egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-loose"),
+            cutbasedID_medium = cms.InputTag("egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-medium"),
+            cutbasedID_tight = cms.InputTag("egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-tight"),
+            mvaID_WP90 = cms.InputTag("egmPhotonIDs:mvaPhoID-Spring16-nonTrig-V1-wp90"),
+            mvaID_WP80 = cms.InputTag("egmPhotonIDs:mvaPhoID-Spring16-nonTrig-V1-wp80"),
             ),
                                             )
-                                   
+
+isoForPho = cms.EDProducer("PhoIsoValueMapProducer",
+                           src = cms.InputTag("slimmedPhotons"),
+                           rho = cms.InputTag("fixedGridRhoFastjetAll"),
+                           mapIsoChg = cms.InputTag("photonIDValueMapProducer:phoChargedIsolation"),
+                           mapIsoNeu = cms.InputTag("photonIDValueMapProducer:phoNeutralHadronIsolation"),
+                           mapIsoPho = cms.InputTag("photonIDValueMapProducer:phoPhotonIsolation"),
+                           EAFile_PFIso_Chg = cms.FileInPath("RecoEgamma/PhotonIdentification/data/Spring16/effAreaPhotons_cone03_pfChargedHadrons_90percentBased.txt"),
+                           EAFile_PFIso_Neu = cms.FileInPath("RecoEgamma/PhotonIdentification/data/Spring16/effAreaPhotons_cone03_pfNeutralHadrons_90percentBased.txt"),
+                           EAFile_PFIso_Pho = cms.FileInPath("RecoEgamma/PhotonIdentification/data/Spring16/effAreaPhotons_cone03_pfPhotons_90percentBased.txt"),
+                           )
 
 photonsMCMatchForTable = cms.EDProducer("MCMatcher",  # cut on deltaR, deltaPt/Pt; pick best by deltaR
     src         = photonTable.src,                 # final reco collection
@@ -77,7 +98,7 @@ photonMCTable = cms.EDProducer("CandMCMatchTableProducer",
     docString = cms.string("MC matching to status==1 photons or electrons"),
 )
 
-photonSequence = cms.Sequence(slimmedPhotonsWithUserData + finalPhotons)
+photonSequence = cms.Sequence(egmPhotonIDSequence + isoForPho + slimmedPhotonsWithUserData + finalPhotons)
 photonTables = cms.Sequence ( photonTable)
 photonMC = cms.Sequence(photonsMCMatchForTable + photonMCTable)
 
