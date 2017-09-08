@@ -32,6 +32,9 @@ jetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     doc  = cms.string("slimmedJets, i.e. ak4 PFJets CHS with JECs applied, after basic selection (" + finalJets.cut.value()+")"),
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(False), # this is the main table for the jets
+    externalVariables = cms.PSet(
+        bReg = ExtVar(cms.InputTag("bjetMVA"),float, doc="pt corrected with b-jet regression",precision=14),
+    ),
     variables = cms.PSet(P4Vars,
         area = Var("jetArea()", float, doc="jet catchment area, for JECs",precision=10),
         nMuons = Var("?hasOverlaps('muons')?overlaps('muons').size():0", int, doc="number of muons in the jet"),
@@ -60,13 +63,12 @@ jetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
 jetTable.variables.pt.precision=10
 
 
-bjetMVATable= cms.EDProducer("BJetEnergyRegressionMVATable",
+bjetMVA= cms.EDProducer("BJetEnergyRegressionMVA",
     src = cms.InputTag("linkedObjects","jets"),
     pvsrc = cms.InputTag("offlineSlimmedPrimaryVertices"),
     svsrc = cms.InputTag("slimmedSecondaryVertices"),
     weightFile =  cms.FileInPath("PhysicsTools/NanoAOD/data/bjet-regression.xml"),
-    collName = cms.string("Jet"),
-    attName = cms.string("bReg"),
+    name = cms.string("JetReg"),
     variablesOrder = cms.vstring(["Jet_pt","nPVs","Jet_eta","Jet_mt","Jet_leadTrackPt","Jet_leptonPtRel","Jet_leptonPt","Jet_leptonDeltaR","Jet_neHEF","Jet_neEmEF","Jet_vtxPt","Jet_vtxMass","Jet_vtx3dL","Jet_vtxNtrk","Jet_vtx3deL"]),
     variables = cms.PSet(
 	Jet_pt = cms.string("pt"),
@@ -94,28 +96,6 @@ saJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     variables = cms.PSet(P3Vars,
   )
 )
-
-old='''saJet2Table = cms.EDProducer("SimpleCandidateFlatTableProducer",
-    src = cms.InputTag("softActivityJets"),
-    cut = cms.string("pt>2"),
-    name = cms.string("SoftActivityJetPt2"),
-    doc  = cms.string("number of sa jets with pt >2, clustered from charged candidates compatible with primary vertex (" + chsForSATkJets.cut.value()+")"),
-    singleton = cms.bool(False), # the number of entries is variable
-    extension = cms.bool(False), # this is the main table for the jets
-    variables = cms.PSet()
-)
-saJet5Table = saJet2Table.clone(
-	cut=cms.string("pt>5"),
-	doc  = cms.string("number of sa jets with pt >5,  clustered from charged candidates compatible with primary vertex (" + chsForSATkJets.cut.value()+")"),
-	name = cms.string("SoftActivityJetPt5"),
-)
-saJet10Table = saJet2Table.clone(
-	cut=cms.string("pt>10"),
-	doc  = cms.string("number of sa jets with pt >10,  clustered from charged candidates compatible with primary vertex (" + chsForSATkJets.cut.value()+")"),
-	name = cms.string("SoftActivityJetPt10"),
-)
-'''
-
 
 saJetTable.variables.pt.precision=10
 saJetTable.variables.eta.precision=8
@@ -224,7 +204,7 @@ genJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
 #before cross linking
 jetSequence = cms.Sequence(chsForSATkJets+softActivityJets+softActivityJets2+softActivityJets5+softActivityJets10+finalJets)
 #after cross linkining
-jetTables = cms.Sequence( jetTable+fatJetTable+subJetTable+saJetTable+bjetMVATable+saTable)
+jetTables = cms.Sequence(bjetMVA+ jetTable+fatJetTable+subJetTable+saJetTable+saTable)
 
 #MC only producers and tables
 jetMC = cms.Sequence(jetMCTable+genJetTable)

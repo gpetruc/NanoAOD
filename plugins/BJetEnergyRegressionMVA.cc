@@ -25,14 +25,13 @@
 #include "RecoVertex/VertexPrimitives/interface/ConvertToFromReco.h"
 #include "RecoVertex/VertexPrimitives/interface/VertexState.h"
 
-#include "PhysicsTools/NanoAOD/plugins/BaseMVATemplateProducer.h"
+#include "PhysicsTools/NanoAOD/plugins/BaseMVAValueMapProducer.h"
 #include <vector>
 
-template <typename O>
-class BJetEnergyRegressionMVA : public BaseMVATemplateProducer<pat::Jet,O> {
+class BJetEnergyRegressionMVA : public BaseMVAValueMapProducer<pat::Jet> {
 	public:
 	  explicit BJetEnergyRegressionMVA(const edm::ParameterSet &iConfig):
-		BaseMVATemplateProducer<pat::Jet,O>(iConfig),
+		BaseMVAValueMapProducer<pat::Jet>(iConfig),
     		pvsrc_(edm::stream::EDProducer<>::consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("pvsrc"))),
     		svsrc_(edm::stream::EDProducer<>::consumes<edm::View<reco::VertexCompositePtrCandidate>> (iConfig.getParameter<edm::InputTag>("svsrc")))
 
@@ -47,20 +46,20 @@ class BJetEnergyRegressionMVA : public BaseMVATemplateProducer<pat::Jet,O> {
 
           virtual void fillAdditionalVariables(const pat::Jet&j)  override {
 		this->setValue("nPVs",pvs_->size());
-		BaseMVATemplateProducer<pat::Jet,O>::setValue("Jet_leptonPtRel",0);
+		BaseMVAValueMapProducer<pat::Jet>::setValue("Jet_leptonPtRel",0);
 
 		if(j.overlaps("muons").size() >0) { 
 			const auto *lep=dynamic_cast<const pat::Muon *>(&*j.overlaps("muons")[0]);
-			if(lep!=nullptr) {BaseMVATemplateProducer<pat::Jet,O>::setValue("Jet_leptonPtRel",lep->userFloat("ptRel"));}
+			if(lep!=nullptr) {BaseMVAValueMapProducer<pat::Jet>::setValue("Jet_leptonPtRel",lep->userFloat("ptRel"));}
 		}
 		else if(j.overlaps("electrons").size() >0) {
 			const auto *lep=dynamic_cast<const pat::Electron *>(&*j.overlaps("electrons")[0]);
-			if(lep!=nullptr) {BaseMVATemplateProducer<pat::Jet,O>::setValue("Jet_leptonPtRel",lep->userFloat("ptRel"));}
+			if(lep!=nullptr) {BaseMVAValueMapProducer<pat::Jet>::setValue("Jet_leptonPtRel",lep->userFloat("ptRel"));}
 		}
 		
 		float ptMax=0;
 		for(const auto & d : j.daughterPtrVector()){if(d->pt()>ptMax) ptMax=d->pt();}
-		BaseMVATemplateProducer<pat::Jet,O>::setValue("Jet_leadTrackPt",ptMax);
+		BaseMVAValueMapProducer<pat::Jet>::setValue("Jet_leadTrackPt",ptMax);
 
 		//Fill vertex properties
 		VertexDistance3D vdist;
@@ -98,8 +97,5 @@ class BJetEnergyRegressionMVA : public BaseMVATemplateProducer<pat::Jet,O> {
 };
 
 //define this as a plug-in
-typedef BJetEnergyRegressionMVA<edm::ValueMap<float>> BJetEnergyRegressionMVAValueMap;
-typedef BJetEnergyRegressionMVA<FlatTable> BJetEnergyRegressionMVATable;
-DEFINE_FWK_MODULE(BJetEnergyRegressionMVAValueMap);
-DEFINE_FWK_MODULE(BJetEnergyRegressionMVATable);
+DEFINE_FWK_MODULE(BJetEnergyRegressionMVA);
 

@@ -1,12 +1,12 @@
-#ifndef PhysicsTools_NanoAOD_BaseMVATemplateProducer
-#define PhysicsTools_NanoAOD_BaseMVATemplateProducer
+#ifndef PhysicsTools_NanoAOD_BaseMVAValueMapProducer
+#define PhysicsTools_NanoAOD_BaseMVAValueMapProducer
 
 // -*- C++ -*-
 //
 // Package:    PhysicsTools/NanoAOD
-// Class:      BaseMVATemplateProducer
+// Class:      BaseMVAValueMapProducer
 // 
-/**\class BaseMVATemplateProducer BaseMVATemplateProducer.cc PhysicsTools/NanoAOD/plugins/BaseMVATemplateProducer.cc
+/**\class BaseMVAValueMapProducer BaseMVAValueMapProducer.cc PhysicsTools/NanoAOD/plugins/BaseMVAValueMapProducer.cc
 
  Description: [one line class summary]
 
@@ -39,22 +39,19 @@
 
 #include "CommonTools/Utils/interface/StringObjectFunction.h"
 #include "DataFormats/Common/interface/ValueMap.h"
-#include "PhysicsTools/NanoAOD/interface/FlatTable.h"
 #include <string>
 //
 // class declaration
 //
 
-template <typename T,typename O>
-class BaseMVATemplateProducer : public edm::stream::EDProducer<> {
+template <typename T>
+class BaseMVAValueMapProducer : public edm::stream::EDProducer<> {
    public:
-  explicit BaseMVATemplateProducer(const edm::ParameterSet &iConfig):
+  explicit BaseMVAValueMapProducer(const edm::ParameterSet &iConfig):
     src_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("src"))),
     variablesOrder_(iConfig.getParameter<std::vector<std::string>>("variablesOrder")),
-    attName_(iConfig.getParameter<std::string>("attName")),
-    collName_(iConfig.getParameter<std::string>("collName"))
+    name_(iConfig.getParameter<std::string>("name"))
   {
-      std::cout << "hello" << std::endl;
       edm::ParameterSet const & varsPSet = iConfig.getParameter<edm::ParameterSet>("variables");
       for (const std::string & vname : varsPSet.getParameterNamesForType<std::string>()) {
       	  std::cout << vname << std::endl;
@@ -68,11 +65,11 @@ class BaseMVATemplateProducer : public edm::stream::EDProducer<> {
 	reader_.AddVariable(v,(&values_.front())+i);
 	i++;
       }
-      reader_.BookMVA(collName_+"_"+attName_,iConfig.getParameter<edm::FileInPath>("weightFile").fullPath() );
-      produces<O>();
+      reader_.BookMVA(name_,iConfig.getParameter<edm::FileInPath>("weightFile").fullPath() );
+      produces<edm::ValueMap<float>>();
 
   }
-  ~BaseMVATemplateProducer() {}
+  ~BaseMVAValueMapProducer() {}
 
   void setValue(const std::string var,float val) {
 	values_[positions_[var]]=val;
@@ -90,23 +87,19 @@ class BaseMVATemplateProducer : public edm::stream::EDProducer<> {
   virtual void fillAdditionalVariables(const T&)  {}
 
 
-  edm::ValueMap<float> * prepareOutput(edm::Handle<edm::View<T>> &src,edm::ValueMap<float>&, const std::vector<float> & vals); 
-  FlatTable * prepareOutput(edm::Handle<edm::View<T>> &src,FlatTable&, const std::vector<float> & vals) ;
-
   edm::EDGetTokenT<edm::View<T>> src_;
   std::map<std::string,size_t> positions_;
   std::vector<std::pair<std::string,StringObjectFunction<T>>> funcs_;
   std::vector<std::string> variablesOrder_;
   std::vector<float> values_;
   TMVA::Reader reader_;
-  std::string attName_;
-  std::string collName_;
+  std::string name_;
 
 };
 
-template <typename T,typename O>
+template <typename T>
 void
-BaseMVATemplateProducer<T,O>::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
+BaseMVAValueMapProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   edm::Handle<edm::View<T>> src;
   iEvent.getByToken(src_, src);
@@ -119,43 +112,24 @@ BaseMVATemplateProducer<T,O>::produce(edm::Event& iEvent, const edm::EventSetup&
 		values_[positions_[p.first]]=p.second(o);
 	}
         fillAdditionalVariables(o);
-	mvaOut.push_back(reader_.EvaluateRegression(collName_+"_"+attName_)[0]);
+	mvaOut.push_back(reader_.EvaluateRegression(name_)[0]);
   }
-  O dumb;
-  std::unique_ptr<O> mvaV(prepareOutput(src,dumb,mvaOut));
-
+  std::unique_ptr<edm::ValueMap<float>> mvaV(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler filler(*mvaV);
+  filler.insert(src,mvaOut.begin(),mvaOut.end());
+  filler.fill();
   iEvent.put(std::move(mvaV));
 
 }
 
-template <typename T,typename O>
+template <typename T>
 void
-BaseMVATemplateProducer<T,O>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+BaseMVAValueMapProducer<T>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   //The following says we do not know what parameters are allowed so do no validation
   // Please change this to state exactly what you do use, even if it is no parameters
   edm::ParameterSetDescription desc;
   desc.setUnknown();
   descriptions.addDefault(desc);
-}
-
-template <typename T,typename O> 
- edm::ValueMap<float> *
-BaseMVATemplateProducer<T,O>::prepareOutput(edm::Handle<edm::View<T>> &src, edm::ValueMap<float> &, const std::vector<float> & vals)
-{
-  edm::ValueMap<float> * mvaV= new edm::ValueMap<float>();
-  edm::ValueMap<float>::Filler filler(*mvaV);
-  filler.insert(src,vals.begin(),vals.end());
-  filler.fill();
-  return mvaV;
-}
-template <typename T,typename O> 
-FlatTable *
-BaseMVATemplateProducer<T,O>::prepareOutput(edm::Handle<edm::View<T>> &src, FlatTable &, const std::vector<float> & vals)
-{
-  FlatTable * mvaV= new FlatTable(src->size(),collName_,false,true);
-  mvaV->addColumn<float>(attName_,vals,attName_,FlatTable::FloatColumn,10);
-
-  return mvaV;
 }
 
 

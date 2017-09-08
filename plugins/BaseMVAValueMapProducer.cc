@@ -23,20 +23,14 @@
 #include "DataFormats/PatCandidates/interface/Jet.h"
 
 
-#include "PhysicsTools/NanoAOD/plugins/BaseMVATemplateProducer.h"
+#include "PhysicsTools/NanoAOD/plugins/BaseMVAValueMapProducer.h"
 
-typedef BaseMVATemplateProducer<pat::Jet,edm::ValueMap<float>> JetBaseMVAValueMapProducer;
-typedef BaseMVATemplateProducer<pat::Muon,edm::ValueMap<float>> MuonBaseMVAValueMapProducer;
-typedef BaseMVATemplateProducer<pat::Electron,edm::ValueMap<float>> EleBaseMVAValueMapProducer;
-typedef BaseMVATemplateProducer<pat::Jet,FlatTable> JetBaseMVAFlatTableProducer;
-typedef BaseMVATemplateProducer<pat::Muon,FlatTable> MuonBaseMVAFlatTableProducer;
-typedef BaseMVATemplateProducer<pat::Electron,FlatTable> EleBaseMVAFlatTableProducer;
+typedef BaseMVAValueMapProducer<pat::Jet> JetBaseMVAValueMapProducer;
+typedef BaseMVAValueMapProducer<pat::Muon> MuonBaseMVAValueMapProducer;
+typedef BaseMVAValueMapProducer<pat::Electron> EleBaseMVAValueMapProducer;
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(JetBaseMVAValueMapProducer);
 DEFINE_FWK_MODULE(MuonBaseMVAValueMapProducer);
 DEFINE_FWK_MODULE(EleBaseMVAValueMapProducer);
-DEFINE_FWK_MODULE(JetBaseMVAFlatTableProducer);
-DEFINE_FWK_MODULE(MuonBaseMVAFlatTableProducer);
-DEFINE_FWK_MODULE(EleBaseMVAFlatTableProducer);
 
