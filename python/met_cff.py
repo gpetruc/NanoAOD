@@ -24,6 +24,20 @@ metTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
 
     ),
 )
+
+caloMetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+    src = metTable.src,
+    name = cms.string("METCalo"),
+    doc = cms.string("Calo MET"),
+    singleton = cms.bool(True),  # there's always exactly one MET per event
+    extension = cms.bool(False), # this is the main table for the MET
+    variables = cms.PSet(#NOTA BENE: we don't copy PTVars here!
+       pt  = Var("caloMETPt",  float, precision=10),
+       phi = Var("caloMETPhi", float, precision=10),
+       sumEt = Var("caloMETSumEt", float, doc="scalar sum of Et", precision=10),
+    ),
+)
+
 puppiMetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("slimmedMETsPuppi"),
     name = cms.string("METpuppi"),
@@ -35,7 +49,19 @@ puppiMetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     ),
 )
 
+metMCTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+    src = metTable.src,
+    name = cms.string("MET"),
+    doc = cms.string("Calo MET"),
+    singleton = cms.bool(True),  # there's always exactly one MET per event
+    extension = cms.bool(True),  # we add variables to the MET
+    variables = cms.PSet(
+       genPt  = Var("genMET.pt",  float, precision=10),
+       genPhi = Var("genMET.phi", float, precision=10),
+    ),
+)
 
 #metSequence = cms.Sequence()
-metTables = cms.Sequence( metTable + puppiMetTable)
+metTables = cms.Sequence( metTable + caloMetTable + puppiMetTable )
+metMC = cms.Sequence( metMCTable )
 

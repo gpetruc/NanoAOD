@@ -1,6 +1,30 @@
 import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import *
 
+isoForMu = cms.EDProducer("MuonIsoValueMapProducer",
+    src = cms.InputTag("slimmedMuons"),
+    rho = cms.InputTag("fixedGridRhoFastjetCentralNeutral"),
+    EAFile_MiniIso = cms.FileInPath("PhysicsTools/NanoAOD/data/effAreaMuons_cone03_pfNeuHadronsAndPhotons_80X.txt"),
+)
+
+ptRatioRelForMu = cms.EDProducer("MuonJetVarProducer",
+    srcJet = cms.InputTag("slimmedJets"),
+    srcLep = cms.InputTag("slimmedMuons"),
+)
+
+slimmedMuonsWithUserData = cms.EDProducer("PATMuonUserDataEmbedder",
+     src = cms.InputTag("slimmedMuons"),
+     userFloats = cms.PSet(
+        miniIsoChg = cms.InputTag("isoForMu:miniIsoChg"),
+        miniIsoAll = cms.InputTag("isoForMu:miniIsoAll"),
+        ptRatio = cms.InputTag("ptRatioRelForMu:ptRatio"),
+        ptRel = cms.InputTag("ptRatioRelForMu:ptRel"),
+     ),
+     userCands = cms.PSet(
+        jetForLepJetVar = cms.InputTag("ptRatioRelForMu:jetForLepJetVar") # warning: Ptr is null if no match is found
+     ),
+)
+
 finalMuons = cms.EDFilter("PATMuonRefSelector",
     src = cms.InputTag("slimmedMuonsWithUserData"),
     cut = cms.string("pt > 3 && track.isNonnull && isLooseMuon")
@@ -24,7 +48,6 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         segmentComp   = Var("segmentCompatibility()", float, doc = "muon segment compatibility", precision=14), # keep higher precision since people have cuts with 3 digits on this
         nStations = Var("numberOfMatchedStations", int, doc = "number of matched stations with default arbitration (segment & track)"),
         jet = Var("?hasUserCand('jet')?userCand('jet').key():-1", int, doc="index of the associated jet (-1 if none)"),
-        mediumId = Var("isPFMuon && innerTrack.validFraction >= 0.49 && ( isGlobalMuon && globalTrack.normalizedChi2 < 3 && combinedQuality.chi2LocalPosition < 12 && combinedQuality.trkKink < 20 && segmentCompatibility >= 0.303 || segmentCompatibility >= 0.451 )", bool, doc = "POG Medium muon ID (2016 tune)"),
         miniPFIso_chg = Var("userFloat('miniIsoChg')",float,doc="mini PF isolation, charged component"),
         miniPFIso_all = Var("userFloat('miniIsoAll')",float,doc="mini PF isolation, total (with scaled rho*EA PU corrections)"),
         PFIso03_chg = Var("pfIsolationR03().sumChargedHadronPt",float,doc="PF isolation dR=0.3, charged component"),
@@ -33,30 +56,12 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     ),
 )
 
-isoForMu = cms.EDProducer("MuonIsoValueMapProducer",
-                          src = cms.InputTag("slimmedMuons"),
-                          rho = cms.InputTag("fixedGridRhoFastjetCentralNeutral"),
-                          EAFile_MiniIso = cms.FileInPath("PhysicsTools/NanoAOD/data/effAreaMuons_cone03_pfNeuHadronsAndPhotons_80X.txt"),
-                          )
+muonIDTable = cms.EDProducer("MuonIDTableProducer",
+    name = muonTable.name,
+    muons = muonTable.src,  # final reco collection
+    vertices = cms.InputTag("offlineSlimmedPrimaryVertices"),
+)
 
-ptRatioRelForMu = cms.EDProducer("MuonJetVarProducer",
-                                  srcJet = cms.InputTag("slimmedJets"),
-                                  srcLep = cms.InputTag("slimmedMuons"),
-                                  )
-
-
-slimmedMuonsWithUserData = cms.EDProducer("PATMuonUserDataEmbedder",
-                                          src = cms.InputTag("slimmedMuons"),
-                                          userFloats = cms.PSet(
-        miniIsoChg = cms.InputTag("isoForMu:miniIsoChg"),
-        miniIsoAll = cms.InputTag("isoForMu:miniIsoAll"),
-        ptRatio = cms.InputTag("ptRatioRelForMu:ptRatio"),
-        ptRel = cms.InputTag("ptRatioRelForMu:ptRel"),
-        ),
-                                          userCands = cms.PSet(
-        jetForLepJetVar = cms.InputTag("ptRatioRelForMu:jetForLepJetVar") # warning: Ptr is null if no match is found
-        ),
-                                              )
 
 muonsMCMatchForTable = cms.EDProducer("MCMatcher",       # cut on deltaR, deltaPt/Pt; pick best by deltaR
     src         = muonTable.src,                         # final reco collection
@@ -81,5 +86,5 @@ muonMCTable = cms.EDProducer("CandMCMatchTableProducer",
 
 muonSequence = cms.Sequence(isoForMu + ptRatioRelForMu + slimmedMuonsWithUserData + finalMuons)
 muonMC = cms.Sequence(muonsMCMatchForTable + muonMCTable)
-muonTables = cms.Sequence ( muonTable)
+muonTables = cms.Sequence(muonTable + muonIDTable)
 
