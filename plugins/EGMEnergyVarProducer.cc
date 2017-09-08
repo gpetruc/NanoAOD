@@ -63,8 +63,6 @@ private:
   //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
   //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
-  std::pair<float,float> calculatePtRatioRel(auto &lep, auto &jet);
-
   // ----------member data ---------------------------
 
   edm::EDGetTokenT<edm::View<T>> srcRaw_;
