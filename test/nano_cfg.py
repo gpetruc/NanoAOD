@@ -5,7 +5,9 @@ process.load("FWCore.MessageLogger.MessageLogger_cfi")
 
 process.load("Configuration.StandardSequences.GeometryDB_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+process.load('Configuration.StandardSequences.Services_cff')
 from Configuration.AlCa.autoCond import autoCond
+process.GlobalTag.globaltag = autoCond['run2_mc']
 
 process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 process.MessageLogger.cerr.FwkReport.reportEvery = 100
@@ -23,9 +25,17 @@ process.source.fileNames = [
 
 process.load("PhysicsTools.NanoAOD.nano_cff")
 
-
+process.RandomNumberGeneratorService = cms.Service("RandomNumberGeneratorService",
+    calibratedPatElectrons = cms.PSet(initialSeed = cms.untracked.uint32(81),
+                                        engineName = cms.untracked.string('TRandom3'),
+                                        ),
+    calibratedPatPhotons = cms.PSet(initialSeed = cms.untracked.uint32(81),
+                                      engineName = cms.untracked.string('TRandom3'),
+                                      ),
+)
 process.nanoPath = cms.Path(process.nanoSequenceMC)
-process.GlobalTag.globaltag = autoCond['run2_mc']
+process.calibratedPatElectrons.isMC = cms.bool(True)
+process.calibratedPatPhotons.isMC = cms.bool(True)
 #for data:
 #process.nanoPath = cms.Path(process.nanoSequence)
 #process.GlobalTag.globaltag = autoCond['run2_data']

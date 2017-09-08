@@ -14,8 +14,10 @@ photonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(False), # this is the main table for the photons
     variables = cms.PSet(CandVars,
-       jet = Var("?hasUserCand('jet')?userCand('jet').key():-1", int, doc="index of the associated jet (-1 if none)"),
-       electron = Var("?hasUserCand('electron')?userCand('electron').key():-1", int, doc="index of the associated electron (-1 if none)"),
+       jetIdx = Var("?hasUserCand('jet')?userCand('jet').key():-1", int, doc="index of the associated jet (-1 if none)"),
+       electronIdx = Var("?hasUserCand('electron')?userCand('electron').key():-1", int, doc="index of the associated electron (-1 if none)"),
+       energyErr = Var("getCorrectedEnergyError('regression2')*userFloat('eCorr')",float,doc="energy error of the cluster from regression",precision=6),
+       eCorr = Var("userFloat('eCorr')",float,doc="ratio of the calibrated energy/miniaod energy"),
        r9 = Var("full5x5_r9()",float,doc="R9 of the supercluster, calculated with full 5x5 region",precision=10),
        sieie = Var("full5x5_sigmaIetaIeta()",float,doc="sigma_IetaIeta of the supercluster, calculated with full 5x5 region",precision=10),
        cutBased = Var("userInt('cutbasedID_loose')+userInt('cutbasedID_medium')+userInt('cutbasedID_tight')",int,doc="cut-based ID (0:fail, 1::loose, 2:medium, 3:tight)"),
@@ -30,6 +32,7 @@ photonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        hoe = Var("hadronicOverEm()",float,doc="H over E",precision=8),
     )
 )
+photonTable.variables.pt = Var("pt*userFloat('eCorr')",  float, precision=-1)
 
 from PhysicsTools.SelectorUtils.tools.vid_id_tools import setupVIDSelection
 from RecoEgamma.PhotonIdentification.egmPhotonIDs_cfi import *
@@ -53,12 +56,14 @@ for modname in photon_id_vid_modules:
             if (_id.idName==cms.string('cutBasedPhotonID-Spring16-V2p2-loose')):
                 photonTable.variables.VIDNestedWPBitmap.doc = cms.string('VID compressed bitmap (%s)'%(' '.join([cut.cutName.value() for cut in _id.cutFlow]),))
 
+
 slimmedPhotonsWithUserData = cms.EDProducer("PATPhotonUserDataEmbedder",
                                             src = cms.InputTag("slimmedPhotons"),
                                             userFloats = cms.PSet(
             mvaID = cms.InputTag("photonMVAValueMapProducer:PhotonMVAEstimatorRun2Spring16NonTrigV1Values"),
             PFIsoChg = cms.InputTag("isoForPho:PFIsoChg"),
             PFIsoAll = cms.InputTag("isoForPho:PFIsoAll"),
+            eCorr = cms.InputTag("energyCorrForPhoton:eCorr"),
             ),
                                             userIntFromBools = cms.PSet(
             cutbasedID_loose = cms.InputTag("egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-loose"),
@@ -71,6 +76,14 @@ slimmedPhotonsWithUserData = cms.EDProducer("PATPhotonUserDataEmbedder",
             VIDNestedWPBitmap = cms.InputTag("bitmapVIDForPho:VIDNestedWPBitmap"),
             ),
                                             )
+                                   
+from EgammaAnalysis.ElectronTools.calibratedPhotonsRun2_cfi import calibratedPatPhotons
+calibratedPatPhotons.correctionFile = cms.string("PhysicsTools/NanoAOD/data/80X_ichepV2_2016_pho") # hack, should go somewhere in EgammaAnalysis
+
+energyCorrForPhoton = cms.EDProducer("PhotonEnergyVarProducer",
+                                   srcRaw = cms.InputTag("slimmedPhotons"),
+                                   srcCorr = cms.InputTag("calibratedPatPhotons"),
+                                   )
 
 bitmapVIDForPho = cms.EDProducer("PhoVIDNestedWPBitmapProducer",
                                  src = cms.InputTag("slimmedPhotons"),
@@ -113,7 +126,7 @@ photonMCTable = cms.EDProducer("CandMCMatchTableProducer",
     docString = cms.string("MC matching to status==1 photons or electrons"),
 )
 
-photonSequence = cms.Sequence(egmPhotonIDSequence + bitmapVIDForPho + isoForPho + slimmedPhotonsWithUserData + finalPhotons)
+photonSequence = cms.Sequence(egmPhotonIDSequence + bitmapVIDForPho + isoForPho + calibratedPatPhotons + energyCorrForPhoton + slimmedPhotonsWithUserData + finalPhotons)
 photonTables = cms.Sequence ( photonTable)
 photonMC = cms.Sequence(photonsMCMatchForTable + photonMCTable)
 

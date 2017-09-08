@@ -2,7 +2,9 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "PhysicsTools/NanoAOD/interface/FlatTable.h"
 #include "FWCore/Framework/interface/ConsumesCollector.h"
+#include "DataFormats/Candidate/interface/Candidate.h"
 
+#include <utility>
 #include <vector>
 #include <boost/ptr_container/ptr_vector.hpp>
 
@@ -19,6 +21,8 @@ class GlobalVariablesTableProducer : public edm::stream::EDProducer<> {
                 else if (type == "float") vars_.push_back(new FloatVar(vname, FlatTable::FloatColumn, varPSet, consumesCollector()));
                 else if (type == "double") vars_.push_back(new DoubleVar(vname, FlatTable::FloatColumn, varPSet, consumesCollector()));
                 else if (type == "bool") vars_.push_back(new BoolVar(vname, FlatTable::UInt8Column, varPSet, consumesCollector()));
+                else if (type == "candidatescalarsum") vars_.push_back(new CandidateScalarSumVar(vname, FlatTable::FloatColumn, varPSet, consumesCollector()));
+                else if (type == "candidatesize") vars_.push_back(new CandidateSizeVar(vname, FlatTable::IntColumn, varPSet, consumesCollector()));
                 else throw cms::Exception("Configuration", "unsupported type "+type+" for variable "+vname);
             }
 
@@ -48,7 +52,61 @@ class GlobalVariablesTableProducer : public edm::stream::EDProducer<> {
                 std::string name_, doc_;
                 FlatTable::ColumnType type_;
         };
-        template<typename ValType, typename ColType=ValType>
+	template <typename ValType>
+	class Identity {
+		public:
+			static ValType convert(ValType x){return x;}
+			
+	};
+	template <typename ValType>
+	class Size {
+		public:
+			static int convert(ValType x){return x.size();}
+			
+	};
+
+	template <typename ColType,typename ValType>
+	class Max {
+		public:
+			static ColType convert(ValType x){
+				ColType v=std::numeric_limits<ColType>::min();
+				for(const auto & i : x) if(i>v) v=i;
+				return v;
+			}
+        };
+	template <typename ColType,typename ValType>
+        class Min {
+                public:
+                        static ColType convert(ValType x){
+                                ColType v=std::numeric_limits<ColType>::max(); 
+                                for(const auto & i : x) if(i<v) v=i;
+                                return v;
+                        }
+        };
+	template <typename ColType,typename ValType>
+        class ScalarPtSum {
+                public:
+                        static ColType convert(ValType x){
+                                ColType v=0;
+                                for(const auto & i : x) v+=i.pt();
+                                return v;
+                        }
+        };
+	template <typename ColType,typename ValType>
+        class PtVectorSum {
+                public:
+                        static ColType convert(ValType x){
+				if(x.size()==0) return 0;
+                                auto v=x[0].p4();
+				v-=x[0].p4();
+                                for(const auto & i : x) v+=i.p4();
+                                return v.pt();
+                        }
+        };
+
+
+
+        template<typename ValType, typename ColType=ValType,  typename Converter=Identity<ValType> >
             class VariableT : public Variable {
                 public:
                     VariableT(const std::string & aname, FlatTable::ColumnType atype, const edm::ParameterSet & cfg, edm::ConsumesCollector && cc) :
@@ -57,7 +115,7 @@ class GlobalVariablesTableProducer : public edm::stream::EDProducer<> {
                     void fill(const edm::Event &iEvent, FlatTable & out) const override {
                         edm::Handle<ValType> handle;
                         iEvent.getByToken(src_, handle);
-                        out.template addColumnValue<ColType>(this->name_, *handle, this->doc_, this->type_);
+                        out.template addColumnValue<ColType>(this->name_, Converter::convert(*handle), this->doc_, this->type_);
                     }
                 protected:
                     edm::EDGetTokenT<ValType> src_;
@@ -66,6 +124,8 @@ class GlobalVariablesTableProducer : public edm::stream::EDProducer<> {
         typedef VariableT<float> FloatVar;
         typedef VariableT<double,float> DoubleVar;
         typedef VariableT<bool,uint8_t> BoolVar;
+        typedef VariableT<edm::View<reco::Candidate>,float,ScalarPtSum<float,edm::View<reco::Candidate>>> CandidateScalarSumVar;
+        typedef VariableT<edm::View<reco::Candidate>,int,Size<edm::View<reco::Candidate>>> CandidateSizeVar;
         boost::ptr_vector<Variable> vars_;
 };
 
