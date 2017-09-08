@@ -30,11 +30,13 @@ def Var(expr, valtype, compression=None, doc=None, mcOnly=False,precision=-1):
            
 
 PTVars = cms.PSet(
-    pt  = Var("pt",  float,precision=-1),
-    phi = Var("phi", float),
+    pt  = Var("pt",  float, precision=-1),
+    phi = Var("phi", float, precision=12),
 )
-P4Vars = cms.PSet(PTVars,
+P3Vars = cms.PSet(PTVars,
     eta  = Var("eta",  float,precision=12),
+)
+P4Vars = cms.PSet(P3Vars,
     mass = Var("mass", float,precision=10),
 )
 CandVars = cms.PSet(P4Vars,
