@@ -1,16 +1,5 @@
 import FWCore.ParameterSet.Config as cms
-from PhysicsTools.NanoAOD.common_cff import OVar
-
-def ExtVar(tag, valtype, compression=None, doc=None, mcOnly=False):
-    """Create a PSet for a variable read from the event
-
-       tag is the InputTag to the variable. 
-
-       see OVar in common_cff for all the other arguments
-    """
-    return OVar(valtype, compression=compression, doc=(doc if doc else tag.encode()), mcOnly=mcOnly).clone(
-                src = tag if type(tag) == cms.InputTag else cms.InputTag(tag),
-          )
+from PhysicsTools.NanoAOD.common_cff import *
 
 rhoTable = cms.EDProducer("GlobalVariablesTableProducer",
     variables = cms.PSet(
