@@ -17,6 +17,8 @@ electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        jetIdx = Var("?hasUserCand('jet')?userCand('jet').key():-1", int, doc="index of the associated jet (-1 if none)"),
        photonIdx = Var("?overlaps('photons').size()>0?overlaps('photons')[0].key():-1", int, doc="index of the associated photon (-1 if none)"),
        #ptErr = Var("gsfTrack().ptError()",float,doc="pt error of the GSF track",precision=6),
+       energyErr = Var("p4Error('P4_COMBINATION')*userFloat('eCorr')",float,doc="energy error of the cluster-track combination",precision=6),
+       eCorr = Var("userFloat('eCorr')",float,doc="ratio of the calibrated energy/miniaod energy"),
        #dz = Var("abs(dB('PVDZ'))",float,doc="dz (with sign) wrt first PV, in cm",precision=10),
        #dzErr = Var("abs(edB('PVDZ'))",float,doc="dz uncertainty, in cm",precision=6),
        dxy = Var("dB('PV2D')",float,doc="dxy (with sign) wrt first PV, in cm",precision=10),
@@ -43,6 +45,7 @@ electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        lostHits = Var("gsfTrack.hitPattern.numberOfLostHits('MISSING_INNER_HITS')","uint8",doc="number of missing inner hits"),
     )
 )
+electronTable.variables.pt = Var("pt*userFloat('eCorr')",  float, precision=-1)
 
 
 from PhysicsTools.SelectorUtils.tools.vid_id_tools import setupVIDSelection
@@ -75,6 +78,7 @@ slimmedElectronsWithUserData = cms.EDProducer("PATElectronUserDataEmbedder",
         PFIsoAll = cms.InputTag("isoForEle:PFIsoAll"),
         ptRatio = cms.InputTag("ptRatioRelForEle:ptRatio"),
         ptRel = cms.InputTag("ptRatioRelForEle:ptRel"),
+        eCorr = cms.InputTag("energyCorrForEle:eCorr"),
         ),
                                               userIntFromBools = cms.PSet(
         mvaSpring16GP_WP90 = cms.InputTag("egmGsfElectronIDs:mvaEleID-Spring16-GeneralPurpose-V1-wp90"),
@@ -103,6 +107,14 @@ ptRatioRelForEle = cms.EDProducer("ElectronJetVarProducer",
                                   srcLep = cms.InputTag("slimmedElectrons"),
                                   )
 
+from EgammaAnalysis.ElectronTools.calibratedElectronsRun2_cfi import calibratedPatElectrons
+calibratedPatElectrons.correctionFile = cms.string("PhysicsTools/NanoAOD/data/80X_ichepV1_2016_ele") # hack, should go somewhere in EgammaAnalysis
+
+energyCorrForEle =  cms.EDProducer("ElectronEnergyVarProducer",
+                                   srcRaw = cms.InputTag("slimmedElectrons"),
+                                   srcCorr = cms.InputTag("calibratedPatElectrons"),
+                                   )
+
 electronsMCMatchForTable = cms.EDProducer("MCMatcher",  # cut on deltaR, deltaPt/Pt; pick best by deltaR
     src         = electronTable.src,                 # final reco collection
     matched     = cms.InputTag("finalGenParticles"), # final mc-truth particle collection
@@ -125,6 +137,6 @@ electronMCTable = cms.EDProducer("CandMCMatchTableProducer",
 )
 
 
-electronSequence = cms.Sequence(egmGsfElectronIDSequence + isoForEle + ptRatioRelForEle + slimmedElectronsWithUserData + finalElectrons)
+electronSequence = cms.Sequence(egmGsfElectronIDSequence + isoForEle + ptRatioRelForEle + calibratedPatElectrons + energyCorrForEle + slimmedElectronsWithUserData + finalElectrons)
 electronTables = cms.Sequence ( electronTable)
 electronMC = cms.Sequence(electronsMCMatchForTable + electronMCTable)
