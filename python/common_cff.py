@@ -27,6 +27,17 @@ def Var(expr, valtype, compression=None, doc=None, mcOnly=False,precision=-1):
     """
     return OVar(valtype, compression=compression, doc=(doc if doc else expr), mcOnly=mcOnly,precision=precision).clone(
                 expr = cms.string(expr))
+
+def ExtVar(tag, valtype, compression=None, doc=None, mcOnly=False,precision=-1):
+    """Create a PSet for a variable read from the event
+
+       tag is the InputTag to the variable. 
+
+       see OVar in common_cff for all the other arguments
+    """
+    return OVar(valtype, compression=compression,precision=precision, doc=(doc if doc else tag.encode()), mcOnly=mcOnly).clone(
+                src = tag if type(tag) == cms.InputTag else cms.InputTag(tag),
+          )
            
 
 PTVars = cms.PSet(
@@ -43,6 +54,7 @@ CandVars = cms.PSet(P4Vars,
     pdgId  = Var("pdgId", int, doc="PDG code assigned by the event reconstruction (not by MC truth)"),
     charge = Var("charge", int, doc="electric charge"),
 )
+
 
 
 
