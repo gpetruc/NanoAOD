@@ -6,8 +6,8 @@ from  PhysicsTools.NanoAOD.common_cff import *
 ##################### User floats producers, selectors ##########################
 from RecoJets.JetProducers.ak4PFJets_cfi import ak4PFJets
 
-#chsForSATkJets = cms.EDFilter("CandPtrSelector", src = cms.InputTag("packedPFCandidates"), cut = cms.string('charge()!=0 && pvAssociationQuality()=="CompatibilityDz" && vertexRef().key()==0'))
-chsForSATkJets = cms.EDFilter("CandPtrSelector", src = cms.InputTag("packedPFCandidates"), cut = cms.string('charge()!=0 && fromPV && vertexRef().key()==0'))
+chsForSATkJets = cms.EDFilter("CandPtrSelector", src = cms.InputTag("packedPFCandidates"), cut = cms.string('charge()!=0 && pvAssociationQuality()>=5 && vertexRef().key()==0'))
+#chsForSATkJets = cms.EDFilter("CandPtrSelector", src = cms.InputTag("packedPFCandidates"), cut = cms.string('charge()!=0 && fromPV && vertexRef().key()==0'))
 softActivityJets = ak4PFJets.clone(src = 'chsForSATkJets', doAreaFastjet = False, jetPtMin=1) 
 softActivityJets10 = cms.EDFilter("CandPtrSelector", src = cms.InputTag("chsForSATkJets"), cut = cms.string('pt>10'))
 softActivityJets5 = cms.EDFilter("CandPtrSelector", src = cms.InputTag("chsForSATkJets"), cut = cms.string('pt>5'))
