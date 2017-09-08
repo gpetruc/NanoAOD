@@ -31,7 +31,7 @@ tauTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(False), # this is the main table for the taus
     variables = cms.PSet(P4Vars,
-       jet = Var("?hasUserCand('jet')?userCand('jet').key():-1", int, doc="index of the associated jet (-1 if none)"),
+       jetIdx = Var("?hasUserCand('jet')?userCand('jet').key():-1", int, doc="index of the associated jet (-1 if none)"),
        decayMode = Var("decayMode()",int),
        idDecayMode = Var("tauID('decayModeFinding')", bool),
        idDecayModeNewDMs = Var("tauID('decayModeFindingNewDMs')", bool),
