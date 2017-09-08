@@ -21,9 +21,10 @@ void skim(std::string infile,std::string cut="Jet_pt>200")
   events_new->Write();
   lumi_new->Write();
   runs_new->Write();
+  gBenchmark->Show("skim");
   std::cout << "Input events: " << events->GetEntries() << " output Events: " << events_new->GetEntries() << "  skim efficiency " << 1.*events_new->GetEntries()/events->GetEntries() << std::endl;
+  std::cout << "Input rate: " << 0.001*events->GetEntries()/gBenchmark->GetCpuTime("skim") << " KHz,  output Events: " << 1.*events_new->GetEntries()/gBenchmark->GetCpuTime("skim") << " Hz " << std::endl;
   outfile->Close();
-  gBenchmark->Print("skim");
   
   return;
 } 

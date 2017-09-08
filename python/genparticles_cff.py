@@ -59,7 +59,7 @@ genParticleTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
          eta  = Var("eta",  float,precision=8),
 	 pdgId  = Var("pdgId", int, doc="PDG id"),
 	 status  = Var("status", int, doc="Particle status. 1=stable"),
-	 mother = Var("?numberOfMothers>0?motherRef(0).key():-1", int, doc="index of the mother particle"),
+	 genPartIdxMother = Var("?numberOfMothers>0?motherRef(0).key():-1", int, doc="index of the mother particle"),
  
     )
 )

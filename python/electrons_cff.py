@@ -14,8 +14,8 @@ electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(False), # this is the main table for the electrons
     variables = cms.PSet(CandVars,
-       jet = Var("?hasUserCand('jet')?userCand('jet').key():-1", int, doc="index of the associated jet (-1 if none)"),
-       photon = Var("?overlaps('photons').size()>0?overlaps('photons')[0].key():-1", int, doc="index of the associated photon (-1 if none)"),
+       jetIdx = Var("?hasUserCand('jet')?userCand('jet').key():-1", int, doc="index of the associated jet (-1 if none)"),
+       photonIdx = Var("?overlaps('photons').size()>0?overlaps('photons')[0].key():-1", int, doc="index of the associated photon (-1 if none)"),
        ptErr = Var("gsfTrack().ptError()",float,doc="pt error of the GSF track",precision=6),
        #dz = Var("abs(dB('PVDZ'))",float,doc="dz (with sign) wrt first PV, in cm",precision=10),
        #dzErr = Var("abs(edB('PVDZ'))",float,doc="dz uncertainty, in cm",precision=6),
