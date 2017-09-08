@@ -38,13 +38,6 @@ class BJetEnergyRegressionMVA : public BaseMVATemplateProducer<pat::Jet,O> {
 
 	  {
 
-/*      Jet_leptonPtRel = cms.string("?overlaps('muons').size()>0?overlaps('muons')[0].userFloat('ptRel'):(?overlaps('electrons').size()>0?overlaps('electrons')[0].userFloat('ptRel'):-1)"),
-        Jet_leadTrackPt = cms.string("pt"),
-        Jet_vtxPt = cms.string("pt"),
-        Jet_vtxMass = cms.string("pt"),
-        Jet_vtx3dL = cms.string("pt"),
-        Jet_vtxNtrk = cms.string("pt"),
-        Jet_vtx3deL = cms.string("pt"),*/
 		
 	  }
 	  virtual void readAdditionalCollections(edm::Event&iEvent, const edm::EventSetup&) override {
@@ -69,22 +62,28 @@ class BJetEnergyRegressionMVA : public BaseMVATemplateProducer<pat::Jet,O> {
 		for(const auto & d : j.daughterPtrVector()){if(d->pt()>ptMax) ptMax=d->pt();}
 		BaseMVATemplateProducer<pat::Jet,O>::setValue("Jet_leadTrackPt",ptMax);
 
-//Fill vertex properties
+		//Fill vertex properties
 		VertexDistance3D vdist;
 		float maxFoundSignificance=0;
 		const auto & pv = (*pvs_)[0];
+	  	this->setValue("Jet_vtxPt",0);
+	   	this->setValue("Jet_vtxMass",0);
+    		this->setValue("Jet_vtx3dL",0);
+    		this->setValue("Jet_vtx3deL",0);
+    		this->setValue("Jet_vtxNtrk",0);
+
 		for(const auto &sv: *svs_){
 	      	GlobalVector flightDir(sv.vertex().x() - pv.x(), sv.vertex().y() - pv.y(),sv.vertex().z() - pv.z());
 	            GlobalVector jetDir(j.px(),j.py(),j.pz());
                     if( Geom::deltaR2( flightDir, jetDir ) < 0.09 ){
 		        Measurement1D dl= vdist.distance(pv,VertexState(RecoVertex::convertPos(sv.position()),RecoVertex::convertError(sv.error())));
 			if(dl.significance() > maxFoundSignificance){
+				 maxFoundSignificance=dl.significance();
 				 this->setValue("Jet_vtxPt",sv.pt());
 				 this->setValue("Jet_vtxMass",sv.p4().M());
 				 this->setValue("Jet_vtx3dL",dl.value());
 				 this->setValue("Jet_vtx3deL",dl.error());
 				 this->setValue("Jet_vtxNtrk",sv.numberOfSourceCandidatePtrs());
-				 this->setValue("Jet_vtxMass",sv.p4().M());
 			}	
 		    } 
 		}
