@@ -42,14 +42,14 @@ process.calibratedPatPhotons.isMC = cms.bool(True)
 
 process.out = cms.OutputModule("NanoAODOutputModule",
     fileName = cms.untracked.string('nano.root'),
-    outputCommands = cms.untracked.vstring("drop *", "keep *Table_*Table_*_*","keep edmTriggerResults_*_*_*"),
+    outputCommands = process.NanoAODEDMEventContent.outputCommands,
    #compressionLevel = cms.untracked.int32(9),
     #compressionAlgorithm = cms.untracked.string("LZMA"),
 
 )
 process.out1 = cms.OutputModule("NanoAODOutputModule",
     fileName = cms.untracked.string('lzma.root'),
-    outputCommands = cms.untracked.vstring("drop *", "keep *Table_*Table_*_*","keep edmTriggerResults_*_*_*"),
+    outputCommands = process.NanoAODEDMEventContent.outputCommands,
     compressionLevel = cms.untracked.int32(9),
     compressionAlgorithm = cms.untracked.string("LZMA"),
 

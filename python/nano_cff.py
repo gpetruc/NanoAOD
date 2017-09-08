@@ -10,7 +10,13 @@ from PhysicsTools.NanoAOD.genparticles_cff import *
 from PhysicsTools.NanoAOD.vertices_cff import *
 from PhysicsTools.NanoAOD.met_cff import *
 from PhysicsTools.NanoAOD.triggerObjects_cff import *
+from PhysicsTools.NanoAOD.NanoAODEDMEventContent_cff import *
 
+nanoMetadata = cms.EDProducer("UniqueStringProducer",
+    strings = cms.PSet(
+        tag = cms.string("untagged"),
+    )
+)
 
 linkedObjects = cms.EDProducer("PATObjectCrossLinker",
    jets=cms.InputTag("finalJets"),
@@ -55,7 +61,7 @@ lheInfoTable = cms.EDProducer("LHETablesProducer",
 )
 
 
-nanoSequence = cms.Sequence(muonSequence + jetSequence + tauSequence + electronSequence+photonSequence+vertexSequence+#metSequence+
+nanoSequence = cms.Sequence(nanoMetadata + muonSequence + jetSequence + tauSequence + electronSequence+photonSequence+vertexSequence+#metSequence+
         linkedObjects  +
         jetTables + muonTables + tauTables + electronTables + photonTables +  globalTables +vertexTables+ metTables+simpleCleanerTable + triggerObjectTables )
 
