@@ -2,6 +2,11 @@ import FWCore.ParameterSet.Config as cms
 process = cms.Process('NANO')
 
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
+
+process.load("Configuration.StandardSequences.GeometryDB_cff")
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+from Configuration.AlCa.autoCond import autoCond
+
 process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 process.MessageLogger.cerr.FwkReport.reportEvery = 100
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(10000))
@@ -20,8 +25,10 @@ process.load("PhysicsTools.NanoAOD.nano_cff")
 
 
 process.nanoPath = cms.Path(process.nanoSequenceMC)
+process.GlobalTag.globaltag = autoCond['run2_mc']
 #for data:
 #process.nanoPath = cms.Path(process.nanoSequence)
+#process.GlobalTag.globaltag = autoCond['run2_data']
 
 process.out = cms.OutputModule("NanoAODOutputModule",
     fileName = cms.untracked.string('nano.root'),
