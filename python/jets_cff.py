@@ -13,8 +13,32 @@ softActivityJets10 = cms.EDFilter("CandPtrSelector", src = cms.InputTag("chsForS
 softActivityJets5 = cms.EDFilter("CandPtrSelector", src = cms.InputTag("chsForSATkJets"), cut = cms.string('pt>5'))
 softActivityJets2 = cms.EDFilter("CandPtrSelector", src = cms.InputTag("chsForSATkJets"), cut = cms.string('pt>2'))
 
+looseJetId = cms.EDProducer("PatJetIDValueMapProducer",
+			  filterParams=cms.PSet(
+			    version = cms.string('WINTER16'),
+			    quality = cms.string('LOOSE'),
+			  ),
+                          src = cms.InputTag("slimmedJets")
+)
+tightJetId = cms.EDProducer("PatJetIDValueMapProducer",
+			  filterParams=cms.PSet(
+			    version = cms.string('WINTER16'),
+			    quality = cms.string('TIGHT'),
+			  ),
+                          src = cms.InputTag("slimmedJets")
+)
+
+slimmedJetsWithUserData = cms.EDProducer("PATJetUserDataEmbedder",
+     src = cms.InputTag("slimmedJets"),
+     userInts = cms.PSet(
+        tightId = cms.InputTag("tightJetId"),
+        looseId = cms.InputTag("looseJetId"),
+     ),
+)
+
+
 finalJets = cms.EDFilter("PATJetRefSelector",
-    src = cms.InputTag("slimmedJets"),
+    src = cms.InputTag("slimmedJetsWithUserData"),
     cut = cms.string("pt > 15")
 )
 
@@ -49,6 +73,7 @@ jetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
 	btagDeepC = Var("bDiscriminator('pfDeepCSVJetTags:probc')",float,doc="CMVA V2 btag discriminator",precision=10),
 #puIdDisc = Var("userFloat('pileupJetId:fullDiscriminant')",float,doc="Pilup ID discriminant",precision=10),
 	puId = Var("userInt('pileupJetId:fullId')",int,doc="Pilup ID flags"),
+	jetId = Var("userInt('tightId')*2+userInt('looseId')",int,doc="Jet ID flags bit1 is loose, bit2 is tight"),
 	qgl = Var("userFloat('QGTagger:qgLikelihood')",float,doc="Quark vs Gluon likelihood discriminator",precision=10),
 	nConstituents = Var("numberOfDaughters()",int,doc="Number of particles in the jet"),
 	rawFactor = Var("1.-jecFactor('Uncorrected')",float,doc="1 - Factor to get back to raw pT",precision=6),
@@ -202,7 +227,7 @@ genJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
 
 
 #before cross linking
-jetSequence = cms.Sequence(chsForSATkJets+softActivityJets+softActivityJets2+softActivityJets5+softActivityJets10+finalJets)
+jetSequence = cms.Sequence(looseJetId+tightJetId+slimmedJetsWithUserData+chsForSATkJets+softActivityJets+softActivityJets2+softActivityJets5+softActivityJets10+finalJets)
 #after cross linkining
 jetTables = cms.Sequence(bjetMVA+ jetTable+fatJetTable+subJetTable+saJetTable+saTable)
 
