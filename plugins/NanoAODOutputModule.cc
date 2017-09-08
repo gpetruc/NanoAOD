@@ -15,6 +15,7 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "TROOT.h"
+#include "TObjString.h"
 #include "Compression.h"
 
 // user include files
@@ -32,6 +33,7 @@
 
 #include "DataFormats/Provenance/interface/BranchDescription.h"
 #include "PhysicsTools/NanoAOD/interface/FlatTable.h"
+#include "PhysicsTools/NanoAOD/interface/UniqueString.h"
 #include "PhysicsTools/NanoAOD/plugins/TableOutputBranches.h"
 #include "PhysicsTools/NanoAOD/plugins/TriggerOutputBranches.h"
 #include "PhysicsTools/NanoAOD/plugins/SummaryTableOutputBranches.h"
@@ -106,6 +108,8 @@ private:
   std::vector<TriggerOutputBranches> m_triggers;
 
   std::vector<SummaryTableOutputBranches> m_runTables;
+
+  std::vector<std::pair<std::string,edm::EDGetToken>> m_nanoMetadata;
 };
 
 
@@ -168,6 +172,18 @@ NanoAODOutputModule::writeRun(edm::RunForOutput const& iRun) {
 
   for (auto & t : m_runTables) t.fill(iRun,*m_runTree);
 
+  edm::Handle<UniqueString> hstring;
+  for (const auto & p : m_nanoMetadata) {
+    iRun.getByToken(p.second, hstring);
+    TObjString *tos = dynamic_cast<TObjString *>(m_file->Get(p.first.c_str()));
+    if (tos) {
+        if (hstring->str() != tos->GetString()) throw cms::Exception("LogicError", "Inconsistent nanoMetadata " + p.first + " (" + hstring->str() +")");
+    } else {
+        auto ostr = std::make_unique<TObjString>(hstring->str().c_str());
+        m_file->WriteTObject(ostr.release(), p.first.c_str()); 
+    }
+  }
+
   m_runTree->Fill();
 }
 
@@ -218,6 +234,8 @@ NanoAODOutputModule::openFile(edm::FileBlock const&) {
   for (const auto & keep : keeps[edm::InRun]) {
       if(keep.first->className() == "MergableCounterTable" )
 	      m_runTables.push_back(SummaryTableOutputBranches(keep.first, keep.second));
+      else if(keep.first->className() == "UniqueString" && keep.first->moduleLabel() == "nanoMetadata")
+	      m_nanoMetadata.emplace_back(keep.first->productInstanceName(), keep.second);
       else throw cms::Exception("Configuration", "NanoAODOutputModule cannot handle class " + keep.first->className() + " in Run branch");     
   }
 
