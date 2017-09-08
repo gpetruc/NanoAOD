@@ -32,6 +32,7 @@ electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        mvaSpring16HZZ = Var("userFloat('mvaSpring16HZZ')",float,doc="MVA HZZ ID score"),
        mvaSpring16HZZ_WPL = Var("userInt('mvaSpring16HZZ_WPL')",bool,doc="MVA HZZ ID loose WP"),
        cutBased = Var("userInt('cutbasedID_veto')+userInt('cutbasedID_loose')+userInt('cutbasedID_medium')+userInt('cutbasedID_tight')",int,doc="cut-based ID (0:fail, 1:veto, 2:loose, 3:medium, 4:tight)"),
+       VIDNestedWPBitmap = Var("userInt('VIDNestedWPBitmap')",int),
        cutBased_HLTPreSel = Var("userInt('cutbasedID_HLT')",int,doc="cut-based HLT pre-selection ID"),
        miniPFIso_chg = Var("userFloat('miniIsoChg')",float,doc="mini PF isolation, charged component"),
        miniPFIso_all = Var("userFloat('miniIsoAll')",float,doc="mini PF isolation, total (with scaled rho*EA PU corrections)"),
@@ -62,7 +63,10 @@ for modname in electron_id_vid_modules:
         _id = getattr(ids,name)
         if hasattr(_id,'idName') and hasattr(_id,'cutFlow'):
             setupVIDSelection(egmGsfElectronIDs,_id)
+            if (_id.idName==cms.string('cutBasedElectronID-Summer16-80X-V1-loose')):
+                electronTable.variables.VIDNestedWPBitmap.doc = cms.string('VID compressed bitmap (%s)'%(' '.join([cut.cutName.value() for cut in _id.cutFlow]),))
 from RecoEgamma.ElectronIdentification.heepIdVarValueMapProducer_cfi import *
+
 
 slimmedElectronsWithUserData = cms.EDProducer("PATElectronUserDataEmbedder",
                                         src = cms.InputTag("slimmedElectrons"),
@@ -86,10 +90,22 @@ slimmedElectronsWithUserData = cms.EDProducer("PATElectronUserDataEmbedder",
         cutbasedID_tight = cms.InputTag("egmGsfElectronIDs:cutBasedElectronID-Summer16-80X-V1-tight"),
         cutbasedID_HLT = cms.InputTag("egmGsfElectronIDs:cutBasedElectronHLTPreselection-Summer16-V1"),
         ),
+                                              userInts = cms.PSet(
+        VIDNestedWPBitmap = cms.InputTag("bitmapVIDForEle:VIDNestedWPBitmap"),
+        ),
                                               userCands = cms.PSet(
         jetForLepJetVar = cms.InputTag("ptRatioRelForEle:jetForLepJetVar") # warning: Ptr is null if no match is found
         ),
                                               )
+
+bitmapVIDForEle = cms.EDProducer("EleVIDNestedWPBitmapProducer",
+                                 src = cms.InputTag("slimmedElectrons"),
+                                 WorkingPoints = cms.vstring(
+        "egmGsfElectronIDs:cutBasedElectronID-Summer16-80X-V1-loose",
+        "egmGsfElectronIDs:cutBasedElectronID-Summer16-80X-V1-medium",
+        "egmGsfElectronIDs:cutBasedElectronID-Summer16-80X-V1-tight",
+        )
+                                 )
 
 isoForEle = cms.EDProducer("EleIsoValueMapProducer",
                            src = cms.InputTag("slimmedElectrons"),
@@ -125,6 +141,6 @@ electronMCTable = cms.EDProducer("CandMCMatchTableProducer",
 )
 
 
-electronSequence = cms.Sequence(egmGsfElectronIDSequence + isoForEle + ptRatioRelForEle + slimmedElectronsWithUserData + finalElectrons)
+electronSequence = cms.Sequence(egmGsfElectronIDSequence + bitmapVIDForEle + isoForEle + ptRatioRelForEle + slimmedElectronsWithUserData + finalElectrons)
 electronTables = cms.Sequence ( electronTable)
 electronMC = cms.Sequence(electronsMCMatchForTable + electronMCTable)
