@@ -105,7 +105,7 @@ ptRatioRelForEle = cms.EDProducer("ElectronJetVarProducer",
                                   )
 
 from EgammaAnalysis.ElectronTools.calibratedElectronsRun2_cfi import calibratedPatElectrons
-calibratedPatElectrons.correctionFile = cms.string("PhysicsTools/NanoAOD/test/80X_ichepV1_2016_ele") # hack, should go somewhere in EgammaAnalysis
+calibratedPatElectrons.correctionFile = cms.string("PhysicsTools/NanoAOD/data/80X_ichepV1_2016_ele") # hack, should go somewhere in EgammaAnalysis
 
 energyCorrForEle =  cms.EDProducer("ElectronEnergyVarProducer",
                                    srcRaw = cms.InputTag("slimmedElectrons"),
