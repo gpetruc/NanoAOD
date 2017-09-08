@@ -19,6 +19,11 @@
 #include "DataFormats/PatCandidates/interface/Jet.h"
 
 #include "DataFormats/VertexReco/interface/Vertex.h"
+#include "DataFormats/Candidate/interface/VertexCompositePtrCandidate.h"
+
+#include "RecoVertex/VertexTools/interface/VertexDistance3D.h"
+#include "RecoVertex/VertexPrimitives/interface/ConvertToFromReco.h"
+#include "RecoVertex/VertexPrimitives/interface/VertexState.h"
 
 #include "PhysicsTools/NanoAOD/plugins/BaseMVATemplateProducer.h"
 #include <vector>
@@ -28,7 +33,9 @@ class BJetEnergyRegressionMVA : public BaseMVATemplateProducer<pat::Jet,O> {
 	public:
 	  explicit BJetEnergyRegressionMVA(const edm::ParameterSet &iConfig):
 		BaseMVATemplateProducer<pat::Jet,O>(iConfig),
-    		pvsrc_(edm::stream::EDProducer<>::consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("pvsrc")))
+    		pvsrc_(edm::stream::EDProducer<>::consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("pvsrc"))),
+    		svsrc_(edm::stream::EDProducer<>::consumes<edm::View<reco::VertexCompositePtrCandidate>> (iConfig.getParameter<edm::InputTag>("svsrc")))
+
 	  {
 
 /*      Jet_leptonPtRel = cms.string("?overlaps('muons').size()>0?overlaps('muons')[0].userFloat('ptRel'):(?overlaps('electrons').size()>0?overlaps('electrons')[0].userFloat('ptRel'):-1)"),
@@ -42,10 +49,11 @@ class BJetEnergyRegressionMVA : public BaseMVATemplateProducer<pat::Jet,O> {
 	  }
 	  virtual void readAdditionalCollections(edm::Event&iEvent, const edm::EventSetup&) override {
 		iEvent.getByToken(pvsrc_, pvs_);
+		iEvent.getByToken(svsrc_, svs_);
 	  }
 
           virtual void fillAdditionalVariables(const pat::Jet&j)  override {
-		BaseMVATemplateProducer<pat::Jet,O>::setValue("nPVs",pvs_->size());
+		this->setValue("nPVs",pvs_->size());
 		BaseMVATemplateProducer<pat::Jet,O>::setValue("Jet_leptonPtRel",0);
 
 		if(j.overlaps("muons").size() >0) { 
@@ -61,10 +69,32 @@ class BJetEnergyRegressionMVA : public BaseMVATemplateProducer<pat::Jet,O> {
 		for(const auto & d : j.daughterPtrVector()){if(d->pt()>ptMax) ptMax=d->pt();}
 		BaseMVATemplateProducer<pat::Jet,O>::setValue("Jet_leadTrackPt",ptMax);
 
+//Fill vertex properties
+		VertexDistance3D vdist;
+		float maxFoundSignificance=0;
+		const auto & pv = (*pvs_)[0];
+		for(const auto &sv: *svs_){
+	      	GlobalVector flightDir(sv.vertex().x() - pv.x(), sv.vertex().y() - pv.y(),sv.vertex().z() - pv.z());
+	            GlobalVector jetDir(j.px(),j.py(),j.pz());
+                    if( Geom::deltaR2( flightDir, jetDir ) < 0.09 ){
+		        Measurement1D dl= vdist.distance(pv,VertexState(RecoVertex::convertPos(sv.position()),RecoVertex::convertError(sv.error())));
+			if(dl.significance() > maxFoundSignificance){
+				 this->setValue("Jet_vtxPt",sv.pt());
+				 this->setValue("Jet_vtxMass",sv.p4().M());
+				 this->setValue("Jet_vtx3dL",dl.value());
+				 this->setValue("Jet_vtx3deL",dl.error());
+				 this->setValue("Jet_vtxNtrk",sv.numberOfSourceCandidatePtrs());
+				 this->setValue("Jet_vtxMass",sv.p4().M());
+			}	
+		    } 
+		}
+
 	  }
         private:
-	  edm::EDGetTokenT<std::vector<reco::Vertex>> pvsrc_;
+	  const edm::EDGetTokenT<std::vector<reco::Vertex>> pvsrc_;
  	  edm::Handle<std::vector<reco::Vertex>> pvs_;
+          const edm::EDGetTokenT<edm::View<reco::VertexCompositePtrCandidate> > svsrc_;
+ 	  edm::Handle<edm::View<reco::VertexCompositePtrCandidate>> svs_;
 	  
 };
 

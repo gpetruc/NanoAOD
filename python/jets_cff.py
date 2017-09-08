@@ -9,6 +9,9 @@ from RecoJets.JetProducers.ak4PFJets_cfi import ak4PFJets
 #chsForSATkJets = cms.EDFilter("CandPtrSelector", src = cms.InputTag("packedPFCandidates"), cut = cms.string('charge()!=0 && pvAssociationQuality()=="CompatibilityDz" && vertexRef().key()==0'))
 chsForSATkJets = cms.EDFilter("CandPtrSelector", src = cms.InputTag("packedPFCandidates"), cut = cms.string('charge()!=0 && fromPV && vertexRef().key()==0'))
 softActivityJets = ak4PFJets.clone(src = 'chsForSATkJets', doAreaFastjet = False, jetPtMin=1) 
+softActivityJets10 = cms.EDFilter("CandPtrSelector", src = cms.InputTag("chsForSATkJets"), cut = cms.string('pt>10'))
+softActivityJets5 = cms.EDFilter("CandPtrSelector", src = cms.InputTag("chsForSATkJets"), cut = cms.string('pt>5'))
+softActivityJets2 = cms.EDFilter("CandPtrSelector", src = cms.InputTag("chsForSATkJets"), cut = cms.string('pt>2'))
 
 finalJets = cms.EDFilter("PATJetRefSelector",
     src = cms.InputTag("slimmedJets"),
@@ -60,6 +63,7 @@ jetTable.variables.pt.precision=10
 bjetMVATable= cms.EDProducer("BJetEnergyRegressionMVATable",
     src = cms.InputTag("linkedObjects","jets"),
     pvsrc = cms.InputTag("offlineSlimmedPrimaryVertices"),
+    svsrc = cms.InputTag("slimmedSecondaryVertices"),
     weightFile =  cms.FileInPath("PhysicsTools/NanoAOD/data/bjet-regression.xml"),
     collName = cms.string("Jet"),
     attName = cms.string("bReg"),
@@ -74,12 +78,6 @@ bjetMVATable= cms.EDProducer("BJetEnergyRegressionMVATable",
 	Jet_leptonDeltaR = cms.string('''?overlaps('muons').size()>0?deltaR(eta,phi,overlaps('muons')[0].eta,overlaps('muons')[0].phi):
 				(?overlaps('electrons').size()>0?deltaR(eta,phi,overlaps('electrons')[0].eta,overlaps('electrons')[0].phi):
 				0)'''),
-	#Jet_leptonPtRel = cms.string("?overlaps('muons').size()>0?overlaps('muons')[0].userFloat('ptRel'):(?overlaps('electrons').size()>0?overlaps('electrons')[0].userFloat('ptRel'):-1)"),
-	Jet_vtxPt = cms.string("pt"),
-	Jet_vtxMass = cms.string("pt"),
-	Jet_vtx3dL = cms.string("pt"),
-	Jet_vtxNtrk = cms.string("pt"),
-	Jet_vtx3deL = cms.string("pt"),
     )
 
 )
@@ -97,7 +95,7 @@ saJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
   )
 )
 
-saJet2Table = cms.EDProducer("SimpleCandidateFlatTableProducer",
+old='''saJet2Table = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("softActivityJets"),
     cut = cms.string("pt>2"),
     name = cms.string("SoftActivityJetPt2"),
@@ -116,7 +114,7 @@ saJet10Table = saJet2Table.clone(
 	doc  = cms.string("number of sa jets with pt >10,  clustered from charged candidates compatible with primary vertex (" + chsForSATkJets.cut.value()+")"),
 	name = cms.string("SoftActivityJetPt10"),
 )
-
+'''
 
 
 saJetTable.variables.pt.precision=10
@@ -125,7 +123,14 @@ saJetTable.variables.phi.precision=8
 
 saTable = cms.EDProducer("GlobalVariablesTableProducer",
     variables = cms.PSet(
-        SoftActivityJetHT = ExtVar( cms.InputTag("softActivityJets"), "candidatescalarsum", doc = "scalar sum of soft activity jet pt" ),
+        SoftActivityJetHT = ExtVar( cms.InputTag("softActivityJets"), "candidatescalarsum", doc = "scalar sum of soft activity jet pt, pt>1" ),
+        SoftActivityJetHT10 = ExtVar( cms.InputTag("softActivityJets10"), "candidatescalarsum", doc = "scalar sum of soft activity jet pt , pt >10"  ),
+        SoftActivityJetHT5 = ExtVar( cms.InputTag("softActivityJets5"), "candidatescalarsum", doc = "scalar sum of soft activity jet pt, pt>5"  ),
+        SoftActivityJetHT2 = ExtVar( cms.InputTag("softActivityJets2"), "candidatescalarsum", doc = "scalar sum of soft activity jet pt, pt >2"  ),
+        SoftActivityJetNjets10 = ExtVar( cms.InputTag("softActivityJets10"), "candidatesize", doc = "number of soft activity jet pt, pt >2"  ),
+        SoftActivityJetNjets5 = ExtVar( cms.InputTag("softActivityJets5"), "candidatesize", doc = "number of soft activity jet pt, pt >5"  ),
+        SoftActivityJetNjets2 = ExtVar( cms.InputTag("softActivityJets2"), "candidatesize", doc = "number of soft activity jet pt, pt >10"  ),
+
     )
 )
 
@@ -217,9 +222,9 @@ genJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
 
 
 #before cross linking
-jetSequence = cms.Sequence(chsForSATkJets+softActivityJets+finalJets)
+jetSequence = cms.Sequence(chsForSATkJets+softActivityJets+softActivityJets2+softActivityJets5+softActivityJets10+finalJets)
 #after cross linkining
-jetTables = cms.Sequence( jetTable+fatJetTable+subJetTable+saJetTable+saJet2Table+saJet5Table+saJet10Table+bjetMVATable+saTable)
+jetTables = cms.Sequence( jetTable+fatJetTable+subJetTable+saJetTable+bjetMVATable+saTable)
 
 #MC only producers and tables
 jetMC = cms.Sequence(jetMCTable+genJetTable)
