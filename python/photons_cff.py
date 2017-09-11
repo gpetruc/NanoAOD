@@ -21,6 +21,7 @@ photonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
        r9 = Var("full5x5_r9()",float,doc="R9 of the supercluster, calculated with full 5x5 region",precision=10),
        sieie = Var("full5x5_sigmaIetaIeta()",float,doc="sigma_IetaIeta of the supercluster, calculated with full 5x5 region",precision=10),
        cutBased = Var("userInt('cutbasedID_loose')+userInt('cutbasedID_medium')+userInt('cutbasedID_tight')",int,doc="cut-based ID (0:fail, 1::loose, 2:medium, 3:tight)"),
+       VIDNestedWPBitmap = Var("userInt('VIDNestedWPBitmap')",int),
        electronVeto = Var("passElectronVeto()",bool,doc="pass electron veto"),
        pixelSeed = Var("hasPixelSeed()",bool,doc="has pixel seed"),
        mvaID = Var("userFloat('mvaID')",float,doc="MVA ID score",precision=10),
@@ -52,6 +53,14 @@ for modname in photon_id_vid_modules:
         _id = getattr(ids,name)
         if hasattr(_id,'idName') and hasattr(_id,'cutFlow'):
             setupVIDSelection(egmPhotonIDs,_id)
+            if (_id.idName==cms.string('cutBasedPhotonID-Spring16-V2p2-loose')):
+                bitmapVIDForPho_WorkingPoints = cms.vstring(
+                    "egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-loose",
+                    "egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-medium",
+                    "egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-tight",
+                    )
+                from math import ceil,log
+                photonTable.variables.VIDNestedWPBitmap.doc = cms.string('VID compressed bitmap (%s), %d bits per cut'%(','.join([cut.cutName.value() for cut in _id.cutFlow]),int(ceil(log(len(bitmapVIDForPho_WorkingPoints)+1,2)))))
 
 
 slimmedPhotonsWithUserData = cms.EDProducer("PATPhotonUserDataEmbedder",
@@ -69,6 +78,9 @@ slimmedPhotonsWithUserData = cms.EDProducer("PATPhotonUserDataEmbedder",
             mvaID_WP90 = cms.InputTag("egmPhotonIDs:mvaPhoID-Spring16-nonTrig-V1-wp90"),
             mvaID_WP80 = cms.InputTag("egmPhotonIDs:mvaPhoID-Spring16-nonTrig-V1-wp80"),
             ),
+                                            userInts = cms.PSet(
+            VIDNestedWPBitmap = cms.InputTag("bitmapVIDForPho"),
+            ),
                                             )
                                    
 from EgammaAnalysis.ElectronTools.calibratedPhotonsRun2_cfi import calibratedPatPhotons
@@ -78,6 +90,11 @@ energyCorrForPhoton = cms.EDProducer("PhotonEnergyVarProducer",
                                    srcRaw = cms.InputTag("slimmedPhotons"),
                                    srcCorr = cms.InputTag("calibratedPatPhotons"),
                                    )
+
+bitmapVIDForPho = cms.EDProducer("PhoVIDNestedWPBitmapProducer",
+                                 src = cms.InputTag("slimmedPhotons"),
+                                 WorkingPoints = bitmapVIDForPho_WorkingPoints,
+                                 )
 
 isoForPho = cms.EDProducer("PhoIsoValueMapProducer",
                            src = cms.InputTag("slimmedPhotons"),
@@ -111,7 +128,7 @@ photonMCTable = cms.EDProducer("CandMCMatchTableProducer",
     docString = cms.string("MC matching to status==1 photons or electrons"),
 )
 
-photonSequence = cms.Sequence(egmPhotonIDSequence + isoForPho + calibratedPatPhotons + energyCorrForPhoton + slimmedPhotonsWithUserData + finalPhotons)
+photonSequence = cms.Sequence(egmPhotonIDSequence + bitmapVIDForPho + isoForPho + calibratedPatPhotons + energyCorrForPhoton + slimmedPhotonsWithUserData + finalPhotons)
 photonTables = cms.Sequence ( photonTable)
 photonMC = cms.Sequence(photonsMCMatchForTable + photonMCTable)
 
