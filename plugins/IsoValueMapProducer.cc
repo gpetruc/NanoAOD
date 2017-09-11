@@ -35,6 +35,7 @@
 #include "DataFormats/PatCandidates/interface/Muon.h"
 #include "DataFormats/PatCandidates/interface/Electron.h"
 #include "DataFormats/PatCandidates/interface/Photon.h"
+#include "DataFormats/PatCandidates/interface/IsolatedTrack.h"
 
 //
 // class declaration
@@ -47,7 +48,7 @@ class IsoValueMapProducer : public edm::stream::EDProducer<> {
     src_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("src"))),
     rho_(consumes<double>(iConfig.getParameter<edm::InputTag>("rho")))
   {
-    if ((typeid(T) == typeid(pat::Muon)) || (typeid(T) == typeid(pat::Electron))) {
+    if ((typeid(T) == typeid(pat::Muon)) || (typeid(T) == typeid(pat::Electron)) || typeid(T) == typeid(pat::IsolatedTrack)) {
       produces<edm::ValueMap<float>>("miniIsoChg");
       produces<edm::ValueMap<float>>("miniIsoAll");
       ea_miniiso_.reset(new EffectiveAreas((iConfig.getParameter<edm::FileInPath>("EAFile_MiniIso")).fullPath()));
@@ -125,7 +126,7 @@ void
 IsoValueMapProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
 
-  if ((typeid(T) == typeid(pat::Muon)) || (typeid(T) == typeid(pat::Electron))) { doMiniIso(iEvent); };
+  if ((typeid(T) == typeid(pat::Muon)) || (typeid(T) == typeid(pat::Electron)) || typeid(T) == typeid(pat::IsolatedTrack)) { doMiniIso(iEvent); };
   if ((typeid(T) == typeid(pat::Electron))) { doPFIsoEle(iEvent); }
   if ((typeid(T) == typeid(pat::Photon))) { doPFIsoPho(iEvent); }
 
@@ -283,9 +284,11 @@ IsoValueMapProducer<T>::fillDescriptions(edm::ConfigurationDescriptions& descrip
 typedef IsoValueMapProducer<pat::Muon> MuonIsoValueMapProducer;
 typedef IsoValueMapProducer<pat::Electron> EleIsoValueMapProducer;
 typedef IsoValueMapProducer<pat::Photon> PhoIsoValueMapProducer;
+typedef IsoValueMapProducer<pat::IsolatedTrack> IsoTrackIsoValueMapProducer;
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(MuonIsoValueMapProducer);
 DEFINE_FWK_MODULE(EleIsoValueMapProducer);
 DEFINE_FWK_MODULE(PhoIsoValueMapProducer);
+DEFINE_FWK_MODULE(IsoTrackIsoValueMapProducer);
 
