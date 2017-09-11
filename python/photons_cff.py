@@ -54,7 +54,13 @@ for modname in photon_id_vid_modules:
         if hasattr(_id,'idName') and hasattr(_id,'cutFlow'):
             setupVIDSelection(egmPhotonIDs,_id)
             if (_id.idName==cms.string('cutBasedPhotonID-Spring16-V2p2-loose')):
-                photonTable.variables.VIDNestedWPBitmap.doc = cms.string('VID compressed bitmap (%s)'%(' '.join([cut.cutName.value() for cut in _id.cutFlow]),))
+                bitmapVIDForPho_WorkingPoints = cms.vstring(
+                    "egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-loose",
+                    "egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-medium",
+                    "egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-tight",
+                    )
+                from math import ceil,log
+                photonTable.variables.VIDNestedWPBitmap.doc = cms.string('VID compressed bitmap (%s), %d bits per cut'%(','.join([cut.cutName.value() for cut in _id.cutFlow]),int(ceil(log(len(bitmapVIDForPho_WorkingPoints)+1,2)))))
 
 
 slimmedPhotonsWithUserData = cms.EDProducer("PATPhotonUserDataEmbedder",
@@ -73,7 +79,7 @@ slimmedPhotonsWithUserData = cms.EDProducer("PATPhotonUserDataEmbedder",
             mvaID_WP80 = cms.InputTag("egmPhotonIDs:mvaPhoID-Spring16-nonTrig-V1-wp80"),
             ),
                                             userInts = cms.PSet(
-            VIDNestedWPBitmap = cms.InputTag("bitmapVIDForPho:VIDNestedWPBitmap"),
+            VIDNestedWPBitmap = cms.InputTag("bitmapVIDForPho"),
             ),
                                             )
                                    
@@ -87,11 +93,7 @@ energyCorrForPhoton = cms.EDProducer("PhotonEnergyVarProducer",
 
 bitmapVIDForPho = cms.EDProducer("PhoVIDNestedWPBitmapProducer",
                                  src = cms.InputTag("slimmedPhotons"),
-                                 WorkingPoints = cms.vstring(
-        "egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-loose",
-        "egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-medium",
-        "egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-tight",
-        )
+                                 WorkingPoints = bitmapVIDForPho_WorkingPoints,
                                  )
 
 isoForPho = cms.EDProducer("PhoIsoValueMapProducer",

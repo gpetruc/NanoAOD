@@ -43,7 +43,8 @@ template <typename T>
 class VIDNestedWPBitmapProducer : public edm::stream::EDProducer<> {
    public:
   explicit VIDNestedWPBitmapProducer(const edm::ParameterSet &iConfig):
-    src_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("src")))
+    src_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("src"))),
+    isInit_(false)
   {
     auto vwp = iConfig.getParameter<std::vector<std::string>>("WorkingPoints");
     for (auto wp : vwp) {
@@ -51,7 +52,7 @@ class VIDNestedWPBitmapProducer : public edm::stream::EDProducer<> {
       src_cutflows_.push_back(consumes<edm::ValueMap<vid::CutFlowResult> >(edm::InputTag(wp)));
     }
     nWP = src_bitmaps_.size();
-    produces<edm::ValueMap<int>>("VIDNestedWPBitmap");
+    produces<edm::ValueMap<int>>();
   }
   ~VIDNestedWPBitmapProducer() {}
   
@@ -75,8 +76,9 @@ class VIDNestedWPBitmapProducer : public edm::stream::EDProducer<> {
 
   unsigned nWP;
   unsigned nBits;
-  std::unique_ptr<unsigned> nCuts;
+  unsigned nCuts;
   std::vector<unsigned> res_;
+  bool isInit_;
 
   void initNCuts(unsigned);
 
@@ -111,10 +113,10 @@ VIDNestedWPBitmapProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup&
     auto obj = src->ptrAt(i);
     for (uint j=0; j<nWP; j++){
       auto cutflow = (*(src_cutflows[j]))[obj];
-      if (!nCuts) initNCuts(cutflow.cutFlowSize());
-      if (cutflow.cutFlowSize()!=*nCuts) throw cms::Exception("Configuration","Trying to compress VID bitmaps for cutflows of different size");
+      if (!isInit_) initNCuts(cutflow.cutFlowSize());
+      if (cutflow.cutFlowSize()!=nCuts) throw cms::Exception("Configuration","Trying to compress VID bitmaps for cutflows of different size");
       auto bitmap = (*(src_bitmaps[j]))[obj];
-      for (uint k=0; k<*nCuts; k++){
+      for (uint k=0; k<nCuts; k++){
 	if (j==0) res_[k] = 0;
 	if (bitmap>>k & 1) {
 	  if (res_[k]!=j) throw cms::Exception("Configuration","Trying to compress VID bitmaps which are not nested in the correct order for all cuts");
@@ -124,7 +126,7 @@ VIDNestedWPBitmapProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup&
     }
 
     int out = 0;
-    for (uint k=0; k<(*nCuts); k++) out |= (res_[k] << (nBits*k));
+    for (uint k=0; k<nCuts; k++) out |= (res_[k] << (nBits*k));
     res.push_back(out);
   }
 
@@ -134,17 +136,18 @@ VIDNestedWPBitmapProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup&
   filler.insert(src,res.begin(),res.end());
   filler.fill();
 
-  iEvent.put(std::move(resV),"VIDNestedWPBitmap");
+  iEvent.put(std::move(resV));
 
 }
 
 template <typename T>
 void
 VIDNestedWPBitmapProducer<T>::initNCuts(uint n){
-  nCuts.reset(new unsigned(n));
+  nCuts = n;
   nBits = ceil(log2(nWP+1));
-  if (nBits*(*nCuts)>sizeof(int)*8) throw cms::Exception("Configuration","Integer cannot contain the compressed VID bitmap information");
-  res_.resize(*nCuts,0);
+  if (nBits*nCuts>sizeof(int)*8) throw cms::Exception("Configuration","Integer cannot contain the compressed VID bitmap information");
+  res_.resize(nCuts,0);
+  isInit_ = true;
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------

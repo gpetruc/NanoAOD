@@ -67,7 +67,13 @@ for modname in electron_id_vid_modules:
         if hasattr(_id,'idName') and hasattr(_id,'cutFlow'):
             setupVIDSelection(egmGsfElectronIDs,_id)
             if (_id.idName==cms.string('cutBasedElectronID-Summer16-80X-V1-loose')):
-                electronTable.variables.VIDNestedWPBitmap.doc = cms.string('VID compressed bitmap (%s)'%(' '.join([cut.cutName.value() for cut in _id.cutFlow]),))
+                from math import ceil,log
+                bitmapVIDForEle_WorkingPoints = cms.vstring(
+                    "egmGsfElectronIDs:cutBasedElectronID-Summer16-80X-V1-loose",
+                    "egmGsfElectronIDs:cutBasedElectronID-Summer16-80X-V1-medium",
+                    "egmGsfElectronIDs:cutBasedElectronID-Summer16-80X-V1-tight",
+                    )
+                electronTable.variables.VIDNestedWPBitmap.doc = cms.string('VID compressed bitmap (%s), %d bits per cut'%(','.join([cut.cutName.value() for cut in _id.cutFlow]),int(ceil(log(len(bitmapVIDForEle_WorkingPoints)+1,2)))))
 from RecoEgamma.ElectronIdentification.heepIdVarValueMapProducer_cfi import *
 
 
@@ -95,7 +101,7 @@ slimmedElectronsWithUserData = cms.EDProducer("PATElectronUserDataEmbedder",
         cutbasedID_HLT = cms.InputTag("egmGsfElectronIDs:cutBasedElectronHLTPreselection-Summer16-V1"),
         ),
                                               userInts = cms.PSet(
-        VIDNestedWPBitmap = cms.InputTag("bitmapVIDForEle:VIDNestedWPBitmap"),
+        VIDNestedWPBitmap = cms.InputTag("bitmapVIDForEle"),
         ),
                                               userCands = cms.PSet(
         jetForLepJetVar = cms.InputTag("ptRatioRelForEle:jetForLepJetVar") # warning: Ptr is null if no match is found
@@ -104,11 +110,7 @@ slimmedElectronsWithUserData = cms.EDProducer("PATElectronUserDataEmbedder",
 
 bitmapVIDForEle = cms.EDProducer("EleVIDNestedWPBitmapProducer",
                                  src = cms.InputTag("slimmedElectrons"),
-                                 WorkingPoints = cms.vstring(
-        "egmGsfElectronIDs:cutBasedElectronID-Summer16-80X-V1-loose",
-        "egmGsfElectronIDs:cutBasedElectronID-Summer16-80X-V1-medium",
-        "egmGsfElectronIDs:cutBasedElectronID-Summer16-80X-V1-tight",
-        )
+                                 WorkingPoints = bitmapVIDForEle_WorkingPoints,
                                  )
 
 isoForEle = cms.EDProducer("EleIsoValueMapProducer",
