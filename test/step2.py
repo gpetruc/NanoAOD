@@ -11,7 +11,7 @@ process.source.fileNames = ['file:step1.root']
 
 process.out = cms.OutputModule("NanoAODOutputModule",
     fileName = cms.untracked.string('nano_merged.root'),
-    outputCommands = cms.untracked.vstring("drop *", "keep *_*Table_*_*","keep edmTriggerResults_*_*_*"),
+    outputCommands = process.NanoAODEDMEventContent.outputCommands,
 #    compressionLevel = cms.untracked.int(9),
 #    compressionAlgorithm = cms.untracked.string("LZMA"),
 

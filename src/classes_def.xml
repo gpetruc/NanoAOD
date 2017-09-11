@@ -28,5 +28,9 @@
         <version ClassVersion="3" checksum="3124640011"/>
     </class>
     <class name="edm::Wrapper<MergableCounterTable>" />
+    <class name="UniqueString" ClassVersion="3">
+        <version ClassVersion="3" checksum="3967771225"/>
+    </class>
+    <class name="edm::Wrapper<UniqueString>" />
 </lcgdict>
 
