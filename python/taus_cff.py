@@ -1,6 +1,7 @@
 import FWCore.ParameterSet.Config as cms
-from  PhysicsTools.NanoAOD.common_cff import *
-
+from PhysicsTools.NanoAOD.common_cff import *
+from PhysicsTools.JetMCAlgos.TauGenJets_cfi import tauGenJets
+from PhysicsTools.JetMCAlgos.TauGenJetsDecayModeSelectorAllHadrons_cfi import tauGenJetsSelectorAllHadrons 
 
 
 ##################### User floats producers, selectors ##########################
@@ -65,6 +66,31 @@ tauTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     )
 )
 
+tauGenJets.GenParticles = cms.InputTag("prunedGenParticles")
+tauGenJets.includeNeutrinos = cms.bool(False)
+
+genVisTaus = cms.EDProducer("GenVisTauProducer",
+    src = cms.InputTag("tauGenJetsSelectorAllHadrons"),         
+    srcGenParticles = cms.InputTag("prunedGenParticles")
+)
+
+genVisTauTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+    src = cms.InputTag("genVisTaus"),
+    cut = cms.string("pt > 10."),
+    name= cms.string("GenVisTau"),
+    doc = cms.string("gen hadronic taus "),
+    singleton = cms.bool(False), # the number of entries is variable
+    extension = cms.bool(False), # this is the main table for generator level hadronic tau decays
+    variables = cms.PSet(
+         pt  = Var("pt",  float,precision=8),
+         phi = Var("phi", float,precision=8),
+         eta  = Var("eta",  float,precision=8),
+	 pdgId  = Var("pdgId", int, doc="PDG id"),
+	 status  = Var("status", int, doc="Hadronic tau decay mode. 0=OneProng0PiZero, 1=OneProng1PiZero, 2=OneProng2PiZero, 10=ThreeProng0PiZero, 11=ThreeProng1PiZero, 15=Other"),
+	 genPartIdxMother = Var("?numberOfMothers>0?motherRef(0).key():-1", int, doc="index of the mother particle"),
+    )
+)
+
 tausMCMatchForTable = cms.EDProducer("MCMatcher",  # cut on deltaR, deltaPt/Pt; pick best by deltaR
     src         = tauTable.src,                 # final reco collection
     matched     = cms.InputTag("finalGenParticles"), # final mc-truth particle collection
@@ -88,6 +114,6 @@ tauMCTable = cms.EDProducer("CandMCMatchTableProducer",
 
 
 tauSequence = cms.Sequence(finalTaus)
-tauTables = cms.Sequence( tauTable )
-tauMC = cms.Sequence(tausMCMatchForTable + tauMCTable)
+tauTables = cms.Sequence(tauTable)
+tauMC = cms.Sequence(tauGenJets + tauGenJetsSelectorAllHadrons + genVisTaus + genVisTauTable + tausMCMatchForTable + tauMCTable)
 

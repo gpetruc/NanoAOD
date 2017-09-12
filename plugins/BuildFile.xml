@@ -6,6 +6,7 @@
 <use   name="DataFormats/PatCandidates"/>
 <use   name="CommonTools/Utils"/>
 <use   name="RecoEgamma/EgammaTools"/>
+<use   name="PhysicsTools/JetMCUtils"/>
 <use   name="PhysicsTools/NanoAOD"/>
 <use   name="roothistmatrix"/>
 <use   name="RecoVertex/VertexTools"/>
