@@ -29,7 +29,7 @@ TriggerOutputBranches::updateTriggerNames(TTree & tree, const edm::TriggerNames 
 	name.replace(vfound,name.size()-vfound,"");
        }
        bool found=false;	
-       if(name.compare(0,3,"HLT")==0 || name.compare(0,4,"Flag")==0){
+       if(name.compare(0,3,"HLT")==0 || name.compare(0,4,"Flag")==0 || name.compare(0,2,"L1")==0 ){
            for(auto & existing : m_triggerBranches) {if(name==existing.name) found=true;}
            if(!found){
 	        NamedBranchPtr nb(name,"Trigger/flag bit"); //FIXME: If the title can be updated we can use it to list the versions _v* that were seen in this file
