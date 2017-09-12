@@ -50,8 +50,10 @@ class GenVisTauProducer : public edm::global::EDProducer<>
       else if ( decayMode_string == "threeProng1Pi0" ) decayMode = reco::PFTau::kThreeProng1PiZero;
       else                                             decayMode = reco::PFTau::kRareDecayMode;
 
+      int pdgId = ( genTauJet->charge() > 0 ) ? -15 : +15;
+
       // CV: store decayMode in status flag of GenParticle object
-      reco::GenParticle genVisTau(genTauJet->charge(), genTauJet->p4(), genTauJet->vertex(), genTauJet->pdgId(), decayMode, true);
+      reco::GenParticle genVisTau(genTauJet->charge(), genTauJet->p4(), genTauJet->vertex(), pdgId, decayMode, true);
 
       // CV: find tau lepton "mother" particle
       size_t numGenParticles = genParticles->size();
