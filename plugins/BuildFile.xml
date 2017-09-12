@@ -11,6 +11,7 @@
 <use   name="roothistmatrix"/>
 <use   name="RecoVertex/VertexTools"/>
 <use   name="RecoVertex/VertexPrimitives"/>
+<use   name="DataFormats/L1TGlobal"/>
 
 <library   file="*.cc" name="PhysicsToolsNanoAODPlugins">
   <flags   EDM_PLUGIN="1"/>
