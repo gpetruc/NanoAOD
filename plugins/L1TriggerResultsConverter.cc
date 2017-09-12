@@ -65,9 +65,9 @@ class L1TriggerResultsConverter : public edm::stream::EDProducer<> {
       //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
       // ----------member data ---------------------------
+      const bool legacyL1_;
       const edm::EDGetTokenT<L1GlobalTriggerReadoutRecord> tokenLegacy_;
       const edm::EDGetTokenT<GlobalAlgBlkBxCollection> token_;
-      const bool legacyL1_;
       std::vector<std::string> names_;
       std::vector<unsigned int> mask_;
       std::vector<unsigned int> indices_;
@@ -79,9 +79,9 @@ class L1TriggerResultsConverter : public edm::stream::EDProducer<> {
 // constructors and destructor
 //
 L1TriggerResultsConverter::L1TriggerResultsConverter(const edm::ParameterSet& params):
- tokenLegacy_(consumes<L1GlobalTriggerReadoutRecord>( params.getParameter<edm::InputTag>("src") )),
- token_(consumes<GlobalAlgBlkBxCollection>( params.getParameter<edm::InputTag>("src") )),
- legacyL1_( params.getParameter<bool>("legacyL1") )
+ legacyL1_( params.getParameter<bool>("legacyL1") ),
+ tokenLegacy_(legacyL1_?consumes<L1GlobalTriggerReadoutRecord>( params.getParameter<edm::InputTag>("src") ): edm::EDGetTokenT<L1GlobalTriggerReadoutRecord>()),
+ token_(!legacyL1_?consumes<GlobalAlgBlkBxCollection>( params.getParameter<edm::InputTag>("src") ): edm::EDGetTokenT<GlobalAlgBlkBxCollection>())
 {
    produces<edm::TriggerResults>();
 }

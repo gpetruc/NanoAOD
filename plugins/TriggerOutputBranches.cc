@@ -6,17 +6,24 @@
 
 void 
 TriggerOutputBranches::updateTriggerNames(TTree & tree, const edm::TriggerNames & names, const edm::TriggerResults & triggers) 
-{
+{  
+   std::vector<std::string> newNames(triggers.getTriggerNames());
+   if(newNames.size()==0) {
+       for(unsigned int j=0;j<triggers.size();j++) {
+ 	   newNames.push_back(names.triggerName(j));
+       }
+   }
+
    for(auto & existing : m_triggerBranches)
    {
        existing.idx=-1;// reset all triggers as not found
-       for(unsigned int j=0;j<triggers.size();j++) {
-	  if(names.triggerName(j)==existing.name) existing.idx=j;		
+       for(unsigned int j=0;j<newNames.size();j++) {
+	  if(newNames[j]==existing.name) existing.idx=j;		
        }
    }
    // Find new ones
-   for(unsigned int j=0;j<triggers.size();j++) {
-       std::string name=names.triggerName(j);
+   for(unsigned int j=0;j<newNames.size();j++) {
+       std::string name=newNames[j];
        std::size_t vfound = name.rfind("_v");
        if (vfound!=std::string::npos){
 	name.replace(vfound,name.size()-vfound,"");
