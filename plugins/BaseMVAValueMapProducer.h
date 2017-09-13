@@ -50,12 +50,12 @@ class BaseMVAValueMapProducer : public edm::stream::EDProducer<> {
   explicit BaseMVAValueMapProducer(const edm::ParameterSet &iConfig):
     src_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("src"))),
     variablesOrder_(iConfig.getParameter<std::vector<std::string>>("variablesOrder")),
-    name_(iConfig.getParameter<std::string>("name"))
+    name_(iConfig.getParameter<std::string>("name")),
+    isClassifier_(iConfig.getParameter<bool>("isClassifier"))  
   {
       edm::ParameterSet const & varsPSet = iConfig.getParameter<edm::ParameterSet>("variables");
       for (const std::string & vname : varsPSet.getParameterNamesForType<std::string>()) {
-      	  std::cout << vname << std::endl;
-	  funcs_.emplace_back(std::pair<std::string,StringObjectFunction<T>>(vname,varsPSet.getParameter<std::string>(vname)));
+	  funcs_.emplace_back(std::pair<std::string,StringObjectFunction<T,true>>(vname,varsPSet.getParameter<std::string>(vname)));
       }
 
       values_.resize(variablesOrder_.size());
@@ -89,11 +89,12 @@ class BaseMVAValueMapProducer : public edm::stream::EDProducer<> {
 
   edm::EDGetTokenT<edm::View<T>> src_;
   std::map<std::string,size_t> positions_;
-  std::vector<std::pair<std::string,StringObjectFunction<T>>> funcs_;
+  std::vector<std::pair<std::string,StringObjectFunction<T,true>>> funcs_;
   std::vector<std::string> variablesOrder_;
   std::vector<float> values_;
   TMVA::Reader reader_;
   std::string name_;
+  bool isClassifier_;
 
 };
 
@@ -112,7 +113,7 @@ BaseMVAValueMapProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& i
 		values_[positions_[p.first]]=p.second(o);
 	}
         fillAdditionalVariables(o);
-	mvaOut.push_back(reader_.EvaluateRegression(name_)[0]);
+	mvaOut.push_back(isClassifier_ ? reader_.EvaluateMVA(name_) : reader_.EvaluateRegression(name_)[0]);
   }
   std::unique_ptr<edm::ValueMap<float>> mvaV(new edm::ValueMap<float>());
   edm::ValueMap<float>::Filler filler(*mvaV);
