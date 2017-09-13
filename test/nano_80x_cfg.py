@@ -4,7 +4,12 @@ process = cms.Process('NANO')
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 process.MessageLogger.cerr.FwkReport.reportEvery = 100
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(500000))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(2000))
+process.load("Configuration.StandardSequences.GeometryDB_cff")
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+process.load('Configuration.StandardSequences.Services_cff')
+from Configuration.AlCa.autoCond import autoCond
+process.GlobalTag.globaltag = autoCond['run2_mc']
 
 process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring())
 process.source.fileNames = [
@@ -23,8 +28,10 @@ process.source.fileNames = [
 ]
 
 process.load("PhysicsTools.NanoAOD.nano_cff")
-
-
+process.nanoSequenceMC.remove(process.finalIsolatedTracks)
+process.nanoSequenceMC.remove(process.isoForIsoTk)
+process.nanoSequenceMC.remove(process.isoTrackTable)
+	#finalIsolatedTracks
 process.nanoPath = cms.Path(process.nanoSequenceMC)
 #for data:
 #process.nanoPath = cms.Path(process.nanoSequence)
@@ -43,7 +50,8 @@ process.out1 = cms.OutputModule("NanoAODOutputModule",
     compressionAlgorithm = cms.untracked.string("LZMA"),
 
 )
-process.end = cms.EndPath(process.out+process.out1) 
+process.end = cms.EndPath(process.out1) 
+#process.end = cms.EndPath(process.out+process.out1) 
 process.jetTable.variables.qgl.expr="-1"
 process.unpackedPatTrigger.patTriggerObjectsStandAlone = "selectedPatTrigger"
 process.fatJetTable.variables.mpruned.expr = cms.string("userFloat(\'ak8PFJetsCHSPrunedMass\')")
@@ -51,3 +59,4 @@ process.fatJetTable.variables.msoftdrop.expr = cms.string("userFloat(\'ak8PFJets
 process.fatJetTable.variables.tau1.expr = cms.string("userFloat(\'NjettinessAK8:tau1\')")
 process.fatJetTable.variables.tau2.expr = cms.string("userFloat(\'NjettinessAK8:tau2\')")
 process.fatJetTable.variables.tau3.expr = cms.string("userFloat(\'NjettinessAK8:tau3\')")
+process.unpackedPatTrigger.unpackFilterLabels = False

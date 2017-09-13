@@ -1,6 +1,7 @@
 import FWCore.ParameterSet.Config as cms
-from  PhysicsTools.NanoAOD.common_cff import *
-
+from PhysicsTools.NanoAOD.common_cff import *
+from PhysicsTools.JetMCAlgos.TauGenJets_cfi import tauGenJets
+from PhysicsTools.JetMCAlgos.TauGenJetsDecayModeSelectorAllHadrons_cfi import tauGenJetsSelectorAllHadrons 
 
 
 ##################### User floats producers, selectors ##########################
@@ -65,21 +66,59 @@ tauTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     )
 )
 
-tausMCMatchForTable = cms.EDProducer("MCMatcher",  # cut on deltaR, deltaPt/Pt; pick best by deltaR
+tauGenJets.GenParticles = cms.InputTag("prunedGenParticles")
+tauGenJets.includeNeutrinos = cms.bool(False)
+
+genVisTaus = cms.EDProducer("GenVisTauProducer",
+    src = cms.InputTag("tauGenJetsSelectorAllHadrons"),         
+    srcGenParticles = cms.InputTag("prunedGenParticles")
+)
+
+genVisTauTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+    src = cms.InputTag("genVisTaus"),
+    cut = cms.string("pt > 10."),
+    name= cms.string("GenVisTau"),
+    doc = cms.string("gen hadronic taus "),
+    singleton = cms.bool(False), # the number of entries is variable
+    extension = cms.bool(False), # this is the main table for generator level hadronic tau decays
+    variables = cms.PSet(
+         pt  = Var("pt",  float,precision=8),
+         phi = Var("phi", float,precision=8),
+         eta  = Var("eta",  float,precision=8),
+	 pdgId  = Var("pdgId", int, doc="PDG id"),
+	 status  = Var("status", int, doc="Hadronic tau decay mode. 0=OneProng0PiZero, 1=OneProng1PiZero, 2=OneProng2PiZero, 10=ThreeProng0PiZero, 11=ThreeProng1PiZero, 15=Other"),
+	 genPartIdxMother = Var("?numberOfMothers>0?motherRef(0).key():-1", int, doc="index of the mother particle"),
+    )
+)
+
+tausMCMatchLepTauForTable = cms.EDProducer("MCMatcher",  # cut on deltaR, deltaPt/Pt; pick best by deltaR
     src         = tauTable.src,                 # final reco collection
     matched     = cms.InputTag("finalGenParticles"), # final mc-truth particle collection
+    mcPdgId     = cms.vint32(11,13),            # one or more PDG ID (11 = electron, 13 = muon); absolute values (see below)
+    checkCharge = cms.bool(False),              # True = require RECO and MC objects to have the same charge
+    mcStatus    = cms.vint32(1),                # PYTHIA status code (1 = stable, 2 = shower, 3 = hard scattering)
+    maxDeltaR   = cms.double(0.3),              # Minimum deltaR for the match
+    maxDPtRel   = cms.double(0.5),              # Minimum deltaPt/Pt for the match
+    resolveAmbiguities    = cms.bool(True),     # Forbid two RECO objects to match to the same GEN object
+    resolveByMatchQuality = cms.bool(True),    # False = just match input in order; True = pick lowest deltaR pair first
+)
+
+tausMCMatchHadTauForTable = cms.EDProducer("MCMatcher",  # cut on deltaR, deltaPt/Pt; pick best by deltaR
+    src         = tauTable.src,                 # final reco collection
+    matched     = cms.InputTag("genVisTaus"), # generator level hadronic tau decays
     mcPdgId     = cms.vint32(15),                    # one or more PDG ID (15 = tau); absolute values (see below)
     checkCharge = cms.bool(False),              # True = require RECO and MC objects to have the same charge
-    mcStatus    = cms.vint32(2),                # PYTHIA status code (1 = stable, 2 = shower, 3 = hard scattering)
-    maxDeltaR   = cms.double(0.4),              # Minimum deltaR for the match
-    maxDPtRel   = cms.double(0.3),              # Minimum deltaPt/Pt for the match
+    mcStatus    = cms.vint32(),                 # CV: no *not* require certain status code for matching (status code corresponds to decay mode for hadronic tau decays)
+    maxDeltaR   = cms.double(0.3),              # Maximum deltaR for the match
+    maxDPtRel   = cms.double(1.),               # Maximum deltaPt/Pt for the match
     resolveAmbiguities    = cms.bool(True),     # Forbid two RECO objects to match to the same GEN object
     resolveByMatchQuality = cms.bool(True),    # False = just match input in order; True = pick lowest deltaR pair first
 )
 
 tauMCTable = cms.EDProducer("CandMCMatchTableProducer",
-    src     = tauTable.src,
-    mcMap   = cms.InputTag("tausMCMatchForTable"),
+    src = tauTable.src,
+    mcMap = cms.InputTag("tausMCMatchLepTauForTable"),
+    mcMapVisTau = cms.InputTag("tausMCMatchHadTauForTable"),                         
     objName = tauTable.name,
     objType = tauTable.name, #cms.string("Tau"),
     branchName = cms.string("mcMatch"),
@@ -88,6 +127,6 @@ tauMCTable = cms.EDProducer("CandMCMatchTableProducer",
 
 
 tauSequence = cms.Sequence(finalTaus)
-tauTables = cms.Sequence( tauTable )
-tauMC = cms.Sequence(tausMCMatchForTable + tauMCTable)
+tauTables = cms.Sequence(tauTable)
+tauMC = cms.Sequence(tauGenJets + tauGenJetsSelectorAllHadrons + genVisTaus + genVisTauTable + tausMCMatchLepTauForTable + tausMCMatchHadTauForTable + tauMCTable)
 
