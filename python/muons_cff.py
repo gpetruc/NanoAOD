@@ -10,6 +10,7 @@ isoForMu = cms.EDProducer("MuonIsoValueMapProducer",
 ptRatioRelForMu = cms.EDProducer("MuonJetVarProducer",
     srcJet = cms.InputTag("slimmedJets"),
     srcLep = cms.InputTag("slimmedMuons"),
+    srcVtx = cms.InputTag("offlineSlimmedPrimaryVertices"),
 )
 
 slimmedMuonsWithUserData = cms.EDProducer("PATMuonUserDataEmbedder",
@@ -19,6 +20,7 @@ slimmedMuonsWithUserData = cms.EDProducer("PATMuonUserDataEmbedder",
         miniIsoAll = cms.InputTag("isoForMu:miniIsoAll"),
         ptRatio = cms.InputTag("ptRatioRelForMu:ptRatio"),
         ptRel = cms.InputTag("ptRatioRelForMu:ptRel"),
+        jetNDauChargedMVASel = cms.InputTag("ptRatioRelForMu:jetNDauChargedMVASel"),
      ),
      userCands = cms.PSet(
         jetForLepJetVar = cms.InputTag("ptRatioRelForMu:jetForLepJetVar") # warning: Ptr is null if no match is found

@@ -44,6 +44,7 @@ isoForEle = cms.EDProducer("EleIsoValueMapProducer",
 ptRatioRelForEle = cms.EDProducer("ElectronJetVarProducer",
     srcJet = cms.InputTag("slimmedJets"),
     srcLep = cms.InputTag("slimmedElectrons"),
+    srcVtx = cms.InputTag("offlineSlimmedPrimaryVertices"),
 )
 
 from EgammaAnalysis.ElectronTools.calibratedElectronsRun2_cfi import calibratedPatElectrons
@@ -70,6 +71,7 @@ slimmedElectronsWithUserData = cms.EDProducer("PATElectronUserDataEmbedder",
         PFIsoAll = cms.InputTag("isoForEle:PFIsoAll"),
         ptRatio = cms.InputTag("ptRatioRelForEle:ptRatio"),
         ptRel = cms.InputTag("ptRatioRelForEle:ptRel"),
+        jetNDauChargedMVASel = cms.InputTag("ptRatioRelForEle:jetNDauChargedMVASel"),
         eCorr = cms.InputTag("energyCorrForEle:eCorr"),
     ),
     userIntFromBools = cms.PSet(

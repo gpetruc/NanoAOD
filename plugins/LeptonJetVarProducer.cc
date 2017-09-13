@@ -33,6 +33,7 @@
 #include "DataFormats/PatCandidates/interface/Muon.h"
 #include "DataFormats/PatCandidates/interface/Jet.h"
 #include "DataFormats/PatCandidates/interface/Electron.h"
+#include "DataFormats/VertexReco/interface/Vertex.h"
 
 #include "TLorentzVector.h"
 #include "DataFormats/Common/interface/View.h"
@@ -48,10 +49,12 @@ class LeptonJetVarProducer : public edm::stream::EDProducer<> {
    public:
   explicit LeptonJetVarProducer(const edm::ParameterSet &iConfig):
     srcJet_(consumes<edm::View<pat::Jet>>(iConfig.getParameter<edm::InputTag>("srcJet"))),
-    srcLep_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("srcLep")))
+    srcLep_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("srcLep"))),
+    srcVtx_(consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("srcVtx")))
   {
     produces<edm::ValueMap<float>>("ptRatio");
     produces<edm::ValueMap<float>>("ptRel");
+    produces<edm::ValueMap<float>>("jetNDauChargedMVASel");
     produces<edm::ValueMap<reco::CandidatePtr>>("jetForLepJetVar");
   }
   ~LeptonJetVarProducer() {};
@@ -68,12 +71,13 @@ class LeptonJetVarProducer : public edm::stream::EDProducer<> {
       //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
       //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
-  std::pair<float,float> calculatePtRatioRel(auto &lep, auto &jet);
+  std::tuple<float,float,float> calculatePtRatioRel(auto &lep, auto &jet, auto &vtx);
 
       // ----------member data ---------------------------
 
   edm::EDGetTokenT<edm::View<pat::Jet>> srcJet_;
   edm::EDGetTokenT<edm::View<T>> srcLep_;
+  edm::EDGetTokenT<std::vector<reco::Vertex>> srcVtx_;
 };
 
 //
@@ -99,19 +103,25 @@ LeptonJetVarProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& iSet
   iEvent.getByToken(srcJet_, srcJet);
   edm::Handle<edm::View<T>> srcLep;
   iEvent.getByToken(srcLep_, srcLep);
+  edm::Handle<std::vector<reco::Vertex>> srcVtx;
+  iEvent.getByToken(srcVtx_, srcVtx);
 
   std::vector<float> ptRatio(srcLep->size(),-1);
   std::vector<float> ptRel(srcLep->size(),-1);
+  std::vector<float> jetNDauChargedMVASel(srcLep->size(),0);
   std::vector<reco::CandidatePtr> jetForLepJetVar(srcLep->size(),reco::CandidatePtr());
+
+  const auto & pv = (*srcVtx)[0];
 
   for (uint il = 0; il<srcLep->size(); il++){
     for (uint ij = 0; ij<srcJet->size(); ij++){
       auto lep = srcLep->ptrAt(il);
       auto jet = srcJet->ptrAt(ij);
       if(matchByCommonSourceCandidatePtr(*lep,*jet)){
-	  auto res = calculatePtRatioRel(lep,jet);
-	  ptRatio[il] = res.first;
-	  ptRel[il] = res.second;
+	  auto res = calculatePtRatioRel(lep,jet,pv);
+	  ptRatio[il] = std::get<0>(res);
+	  ptRel[il] = std::get<1>(res);
+	  jetNDauChargedMVASel[il] = std::get<2>(res);
 	  jetForLepJetVar[il] = jet;
 	  break; // take leading jet with shared source candidates
 	}
@@ -130,6 +140,12 @@ LeptonJetVarProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& iSet
   fillerRel.fill();
   iEvent.put(std::move(ptRelV),"ptRel");
 
+  std::unique_ptr<edm::ValueMap<float>> jetNDauChargedMVASelV(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler fillerNDau(*jetNDauChargedMVASelV);
+  fillerNDau.insert(srcLep,jetNDauChargedMVASel.begin(),jetNDauChargedMVASel.end());
+  fillerNDau.fill();
+  iEvent.put(std::move(jetNDauChargedMVASelV),"jetNDauChargedMVASel");
+
   std::unique_ptr<edm::ValueMap<reco::CandidatePtr>> jetForLepJetVarV(new edm::ValueMap<reco::CandidatePtr>());
   edm::ValueMap<reco::CandidatePtr>::Filler fillerjetForLepJetVar(*jetForLepJetVarV);
   fillerjetForLepJetVar.insert(srcLep,jetForLepJetVar.begin(),jetForLepJetVar.end());
@@ -140,20 +156,37 @@ LeptonJetVarProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& iSet
 }
 
 template <typename T>
-std::pair<float,float>
-LeptonJetVarProducer<T>::calculatePtRatioRel(auto &lep, auto &jet) {
+std::tuple<float,float,float>
+LeptonJetVarProducer<T>::calculatePtRatioRel(auto &lep, auto &jet, auto &vtx) {
  
   auto rawp4_ = jet->correctedP4("Uncorrected");
   auto rawp4 = TLorentzVector(rawp4_.pt(),rawp4_.eta(),rawp4_.phi(),rawp4_.energy());
   auto lepp4 = TLorentzVector(lep->pt(),lep->eta(),lep->phi(),lep->energy());
 
-  if ((rawp4-lepp4).Rho()<1e-4) return std::make_pair<float,float>(1.0,0.0);
+  if ((rawp4-lepp4).Rho()<1e-4) return std::tuple<float,float,float>(1.0,0.0,0.0);
 
   auto jetp4 = (rawp4 - lepp4*(1.0/jet->jecFactor("L1FastJet")))*(jet->pt()/rawp4.Pt())+lepp4;
   auto ptratio = lepp4.Pt()/jetp4.Pt();
   auto ptrel = lepp4.Perp((jetp4-lepp4).Vect());
 
-  return std::make_pair<float,float>(ptratio,ptrel);
+  unsigned jndau = 0;
+  for(const auto _d : jet->daughterPtrVector()) {
+    const auto d = dynamic_cast<const pat::PackedCandidate*>(_d.get());
+    if (d->charge()==0) continue;
+    if (d->fromPV()<=1) continue;
+    if (deltaR(*d,*lep)>0.4) continue;
+    if (!(d->hasTrackDetails())) continue;
+    auto tk = d->pseudoTrack();
+    if(tk.pt()>1 &&
+       tk.hitPattern().numberOfValidHits()>=8 &&
+       tk.hitPattern().numberOfValidPixelHits()>=2 &&
+       tk.normalizedChi2()<5 &&
+       fabs(tk.dxy(vtx.position()))<0.2 &&
+       fabs(tk.dz(vtx.position()))<17
+       ) jndau++;
+  }
+
+  return std::tuple<float,float,float>(ptratio,ptrel,float(jndau));
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
