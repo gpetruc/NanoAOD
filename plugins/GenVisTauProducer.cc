@@ -1,8 +1,8 @@
 #include "FWCore/Framework/interface/global/EDProducer.h"
 #include "FWCore/Framework/interface/Event.h"
-#include "FWCore/Framework/interface/Run.h"
-#include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "DataFormats/Common/interface/View.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
@@ -34,12 +34,12 @@ class GenVisTauProducer : public edm::global::EDProducer<>
 
     edm::Handle<reco::GenParticleCollection> genParticles;
     evt.getByToken(srcGenParticles_, genParticles);
+    size_t numGenParticles = genParticles->size();
 
     auto genVisTaus = std::make_unique<reco::GenParticleCollection>();
 
-    for ( reco::GenJetCollection::const_iterator genTauJet = genTauJets->begin(); 
-	  genTauJet != genTauJets->end(); ++genTauJet ) {
-      std::string decayMode_string = JetMCTagUtils::genTauDecayMode(*genTauJet);
+    for (const auto & genTauJet : *genTauJets) {
+      std::string decayMode_string = JetMCTagUtils::genTauDecayMode(genTauJet);
       // CV: store hadronic tau decays only
       if ( decayMode_string == "electron" || decayMode_string == "muon" ) continue;
       int decayMode = reco::PFTau::kNull;
@@ -50,28 +50,25 @@ class GenVisTauProducer : public edm::global::EDProducer<>
       else if ( decayMode_string == "threeProng1Pi0" ) decayMode = reco::PFTau::kThreeProng1PiZero;
       else                                             decayMode = reco::PFTau::kRareDecayMode;
 
-      int pdgId = ( genTauJet->charge() > 0 ) ? -15 : +15;
+      int pdgId = ( genTauJet.charge() > 0 ) ? -15 : +15;
 
       // CV: store decayMode in status flag of GenParticle object
-      reco::GenParticle genVisTau(genTauJet->charge(), genTauJet->p4(), genTauJet->vertex(), pdgId, decayMode, true);
+      reco::GenParticle genVisTau(genTauJet.charge(), genTauJet.p4(), genTauJet.vertex(), pdgId, decayMode, true);
 
       // CV: find tau lepton "mother" particle
-      size_t numGenParticles = genParticles->size();
       for ( size_t idxGenParticle = 0; idxGenParticle < numGenParticles; ++idxGenParticle ) {
-	reco::GenParticleRef genTau(genParticles, idxGenParticle);
-	if ( abs(genTau->pdgId()) == 15 && genTau->status() == 2 ) {
+	const reco::GenParticle & genTau = (*genParticles)[idxGenParticle];
+	if ( abs(genTau.pdgId()) == 15 && genTau.status() == 2 ) {
 	  reco::Candidate::LorentzVector daughterVisP4;
-	  reco::GenParticleRefVector daughters = genTau->daughterRefVector();
-	  for ( reco::GenParticleRefVector::const_iterator daughter = daughters.begin(); 
-		daughter != daughters.end(); ++daughter ) {
-	    int abs_pdgId = abs((*daughter)->pdgId());
+          for (const reco::GenParticleRef & daughter : genTau.daughterRefVector()) {
+	    int abs_pdgId = abs(daughter->pdgId());
 	    // CV: skip neutrinos
 	    if ( abs_pdgId == 12 || abs_pdgId == 14 || abs_pdgId == 16 ) continue;
-	    daughterVisP4 += (*daughter)->p4();
+	    daughterVisP4 += daughter->p4();
 	  }
-	  double dR = deltaR(daughterVisP4, genVisTau.p4());
-	  if ( dR < 1.e-2 ) {	  
-	    genVisTau.addMother(genTau);
+	  double dR2 = deltaR2(daughterVisP4, genVisTau);
+	  if ( dR2 < 1.e-4 ) {	  
+	    genVisTau.addMother(reco::GenParticleRef(genParticles, idxGenParticle));
 	    break;
 	  }
 	}
@@ -82,6 +79,14 @@ class GenVisTauProducer : public edm::global::EDProducer<>
 
     evt.put(std::move(genVisTaus));
   }
+
+  static void fillDescriptions(edm::ConfigurationDescriptions & descriptions) {
+      edm::ParameterSetDescription desc;
+      desc.add<edm::InputTag>("src")->setComment("collection of visible gen taus (as reco::GenJetCollection)");
+      desc.add<edm::InputTag>("srcGenParticles")->setComment("collections of gen particles");
+      descriptions.add("genVisTaus", desc);
+  }
+
 
  private:
   const edm::EDGetTokenT<reco::GenJetCollection> src_;
