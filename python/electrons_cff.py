@@ -127,7 +127,7 @@ electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         #ptErr = Var("gsfTrack().ptError()",float,doc="pt error of the GSF track",precision=6),
         energyErr = Var("p4Error('P4_COMBINATION')*userFloat('eCorr')",float,doc="energy error of the cluster-track combination",precision=6),
         eCorr = Var("userFloat('eCorr')",float,doc="ratio of the calibrated energy/miniaod energy"),
-        #dz = Var("abs(dB('PVDZ'))",float,doc="dz (with sign) wrt first PV, in cm",precision=10),
+        #dz = Var("abs(dB('PVDZ'))",float,doc="dz (with sign) wrt first PV, in cm",precision=10), # correct also the definition of the lepton MVA input variable when uncommenting this!
         #dzErr = Var("abs(edB('PVDZ'))",float,doc="dz uncertainty, in cm",precision=6),
         dxy = Var("dB('PV2D')",float,doc="dxy (with sign) wrt first PV, in cm",precision=10),
         dxyErr = Var("edB('PV2D')",float,doc="dxy uncertainty, in cm",precision=6),

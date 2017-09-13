@@ -63,7 +63,7 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     extension = cms.bool(False), # this is the main table for the muons
     variables = cms.PSet(CandVars,
         ptErr   = Var("bestTrack().ptError()", float, doc = "ptError of the muon track", precision=6),
-        #dz = Var("abs(dB('PVDZ'))",float,doc="dz (with sign) wrt first PV, in cm",precision=10),
+        #dz = Var("abs(dB('PVDZ'))",float,doc="dz (with sign) wrt first PV, in cm",precision=10), # correct also the definition of the lepton MVA input variable when uncommenting this!
         #dzErr = Var("abs(edB('PVDZ'))",float,doc="dz uncertainty, in cm",precision=6),
         dxy = Var("dB('PV2D')",float,doc="dxy (with sign) wrt first PV, in cm",precision=10),
         dxyErr = Var("edB('PV2D')",float,doc="dxy uncertainty, in cm",precision=6),
