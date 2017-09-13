@@ -61,6 +61,7 @@ private:
   std::string m_logicalFileName;
   int m_compressionLevel;
   std::string m_compressionAlgorithm;
+  bool m_writeProvenance;
   edm::ProcessHistoryRegistry m_processHistoryRegistry;
   edm::JobReport::Token m_jrToken;
   std::unique_ptr<TFile> m_file;
@@ -134,6 +135,7 @@ NanoAODOutputModule::NanoAODOutputModule(edm::ParameterSet const& pset):
   m_logicalFileName(pset.getUntrackedParameter<std::string>("logicalFileName")),
   m_compressionLevel(pset.getUntrackedParameter<int>("compressionLevel")),
   m_compressionAlgorithm(pset.getUntrackedParameter<std::string>("compressionAlgorithm")),
+  m_writeProvenance(pset.getUntrackedParameter<bool>("saveProvenance", true)),
   m_processHistoryRegistry()
 {
 }
@@ -262,17 +264,27 @@ NanoAODOutputModule::openFile(edm::FileBlock const&) {
   m_runTree.reset(new TTree("Runs","Runs"));
   m_runTree->SetAutoSave(std::numeric_limits<Long64_t>::max());
   m_commonRunBranches.branch(*m_runTree);
-
-  m_metaDataTree.reset(new TTree(edm::poolNames::metaDataTreeName().c_str(),"Job metadata"));
-  m_metaDataTree->SetAutoSave(std::numeric_limits<Long64_t>::max());
-  m_parameterSetsTree.reset(new TTree(edm::poolNames::parameterSetsTreeName().c_str(),"Parameter sets"));
-  m_parameterSetsTree->SetAutoSave(std::numeric_limits<Long64_t>::max());
+  
+  if (m_writeProvenance) {
+      m_metaDataTree.reset(new TTree(edm::poolNames::metaDataTreeName().c_str(),"Job metadata"));
+      m_metaDataTree->SetAutoSave(std::numeric_limits<Long64_t>::max());
+      m_parameterSetsTree.reset(new TTree(edm::poolNames::parameterSetsTreeName().c_str(),"Parameter sets"));
+      m_parameterSetsTree->SetAutoSave(std::numeric_limits<Long64_t>::max());
+  }
 }
 void 
 NanoAODOutputModule::reallyCloseFile() {
-  int basketSize = 16384; // fixme configurable?
-  edm::fillParameterSetBranch(m_parameterSetsTree.get(), basketSize);
-  edm::fillProcessHistoryBranch(m_metaDataTree.get(), basketSize, m_processHistoryRegistry);
+  if (m_writeProvenance) {
+      int basketSize = 16384; // fixme configurable?
+      edm::fillParameterSetBranch(m_parameterSetsTree.get(), basketSize);
+      edm::fillProcessHistoryBranch(m_metaDataTree.get(), basketSize, m_processHistoryRegistry);
+      if (m_metaDataTree->GetNbranches() != 0) {
+          m_metaDataTree->SetEntries(-1);
+      }
+      if (m_parameterSetsTree->GetNbranches() != 0) {
+          m_parameterSetsTree->SetEntries(-1);
+      }
+  }
   m_file->Write();
   m_file->Close();
   m_file.reset();
@@ -296,6 +308,8 @@ NanoAODOutputModule::fillDescriptions(edm::ConfigurationDescriptions& descriptio
         ->setComment("ROOT compression level of output file.");
   desc.addUntracked<std::string>("compressionAlgorithm", "ZLIB")
         ->setComment("Algorithm used to compress data in the ROOT output file, allowed values are ZLIB and LZMA");
+  desc.addUntracked<bool>("saveProvenance", true)
+        ->setComment("Save process provenance information, e.g. for edmProvDump");
 
   //replace with whatever you want to get from the EDM by default
   const std::vector<std::string> keep = {"drop *", "keep FlatTable_*_*_*"};
