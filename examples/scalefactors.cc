@@ -8,9 +8,7 @@
 #include <TFile.h>
 #include <TTree.h>
 
-#include <PhysicsTools/NanoAOD/interface/LeptonEfficiencyCorrector.h>
-
-// needs: gSystem->Load("libPhysicsToolsNanoAOD.so");
+#include "LeptonEfficiencyCorrector.cc"
 
 std::vector<std::string> electron_eff_files = 
   {"../data/leptonSF/EGM2D_eleGSF.root",
@@ -37,9 +35,6 @@ void scalefactors(std::string infile) {
   TTree *events=(TTree*)file->Get("Events");
   TFile *ff = new TFile((infile+"_friend.root").c_str(),"recreate");
   TTree *TF = new TTree("TF","scale factors friend tree");
-  // scale factor example with the first lepton of the event
-  float sf;
-  TF->Branch("sf",&sf,"sf/F");
 
   const UInt_t maxLepSize=10;
   UInt_t          nElectron;
@@ -56,19 +51,20 @@ void scalefactors(std::string infile) {
   events->SetBranchAddress("Muon_pt", Muon_pt);
   events->SetBranchAddress("Muon_eta", Muon_eta);
 
+  float Electron_sf[maxLepSize],Muon_sf[maxLepSize];
+  TF->Branch("nElectron",&nElectron,"nElectron/i");
+  TF->Branch("nMuon",&nMuon,"nMuon/i");
+  TF->Branch("Electron_sf",Electron_sf,"Electron_sf[nElectron]/F");
+  TF->Branch("Muon_sf",Muon_sf,"Muon_sf[nMuon]/F");
 
   for (Int_t i=0;i<events->GetEntries();i++) {
+    if(i%100==0) std::cout << "Processed " << i << " entries." << std::endl;
     events->GetEntry(i);
-    sf=1.;
     for(unsigned int el=0; el<std::min(maxLepSize,nElectron); ++el) {
-      // std::cout << "ele eta,pt="<<Electron_pt[el]<<","<<Electron_eta[el]<<std::endl;
-      // std::cout << "ele sf = " << el_sf.getSF(11,Electron_pt[el],Electron_eta[el]) << std::endl;
-      sf *= el_sf.getSF(11,Electron_pt[el],Electron_eta[el]);
+      Electron_sf[el] = el_sf.getSF(11,Electron_pt[el],Electron_eta[el]);
     }
     for(unsigned int mu=0; mu<std::min(maxLepSize,nMuon); ++mu) {
-      // std::cout << "mu eta,pt="<<Muon_pt[mu]<<","<<Muon_eta[mu]<<std::endl;
-      // std::cout << "mu sf = " << mu_sf.getSF(13,Muon_pt[mu],Muon_eta[mu]) << std::endl;
-      sf *= mu_sf.getSF(13,Muon_pt[mu],Muon_eta[mu]);
+      Muon_sf[mu] = mu_sf.getSF(13,Muon_pt[mu],Muon_eta[mu]);
     }
     TF->Fill();
   }
