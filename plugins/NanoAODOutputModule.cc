@@ -30,8 +30,10 @@
 #include "FWCore/MessageLogger/interface/JobReport.h"
 #include "FWCore/Utilities/interface/GlobalIdentifier.h"
 #include "FWCore/Utilities/interface/Digest.h"
-
+#include "IOPool/Provenance/interface/CommonProvenanceFiller.h"
+#include "DataFormats/Provenance/interface/BranchType.h"
 #include "DataFormats/Provenance/interface/BranchDescription.h"
+#include "DataFormats/Provenance/interface/ProcessHistoryRegistry.h"
 #include "PhysicsTools/NanoAOD/interface/FlatTable.h"
 #include "PhysicsTools/NanoAOD/interface/UniqueString.h"
 #include "PhysicsTools/NanoAOD/plugins/TableOutputBranches.h"
@@ -59,9 +61,10 @@ private:
   std::string m_logicalFileName;
   int m_compressionLevel;
   std::string m_compressionAlgorithm;
+  edm::ProcessHistoryRegistry m_processHistoryRegistry;
   edm::JobReport::Token m_jrToken;
   std::unique_ptr<TFile> m_file;
-  std::unique_ptr<TTree> m_tree, m_lumiTree, m_runTree;
+  std::unique_ptr<TTree> m_tree, m_lumiTree, m_runTree, m_metaDataTree, m_parameterSetsTree;
 
   class CommonEventBranches {
      public:
@@ -130,7 +133,8 @@ NanoAODOutputModule::NanoAODOutputModule(edm::ParameterSet const& pset):
   m_fileName(pset.getUntrackedParameter<std::string>("fileName")),
   m_logicalFileName(pset.getUntrackedParameter<std::string>("logicalFileName")),
   m_compressionLevel(pset.getUntrackedParameter<int>("compressionLevel")),
-  m_compressionAlgorithm(pset.getUntrackedParameter<std::string>("compressionAlgorithm"))
+  m_compressionAlgorithm(pset.getUntrackedParameter<std::string>("compressionAlgorithm")),
+  m_processHistoryRegistry()
 {
 }
 
@@ -152,6 +156,8 @@ NanoAODOutputModule::write(edm::EventForOutput const& iEvent) {
   // fill triggers
   for (auto & t : m_triggers) t.fill(iEvent,*m_tree);
   m_tree->Fill();
+
+  m_processHistoryRegistry.registerProcessHistory(iEvent.processHistory());
 }
 
 void 
@@ -161,6 +167,8 @@ NanoAODOutputModule::writeLuminosityBlock(edm::LuminosityBlockForOutput const& i
 
   m_commonLumiBranches.fill(iLumi.id());
   m_lumiTree->Fill();
+
+  m_processHistoryRegistry.registerProcessHistory(iLumi.processHistory());
 }
 
 void 
@@ -185,6 +193,8 @@ NanoAODOutputModule::writeRun(edm::RunForOutput const& iRun) {
   }
 
   m_runTree->Fill();
+
+  m_processHistoryRegistry.registerProcessHistory(iRun.processHistory());
 }
 
 bool 
@@ -252,15 +262,25 @@ NanoAODOutputModule::openFile(edm::FileBlock const&) {
   m_runTree.reset(new TTree("Runs","Runs"));
   m_runTree->SetAutoSave(std::numeric_limits<Long64_t>::max());
   m_commonRunBranches.branch(*m_runTree);
+
+  m_metaDataTree.reset(new TTree(edm::poolNames::metaDataTreeName().c_str(),"Job metadata"));
+  m_metaDataTree->SetAutoSave(std::numeric_limits<Long64_t>::max());
+  m_parameterSetsTree.reset(new TTree(edm::poolNames::parameterSetsTreeName().c_str(),"Parameter sets"));
+  m_parameterSetsTree->SetAutoSave(std::numeric_limits<Long64_t>::max());
 }
 void 
 NanoAODOutputModule::reallyCloseFile() {
+  int basketSize = 16384; // fixme configurable?
+  edm::fillParameterSetBranch(m_parameterSetsTree.get(), basketSize);
+  edm::fillProcessHistoryBranch(m_metaDataTree.get(), basketSize, m_processHistoryRegistry);
   m_file->Write();
   m_file->Close();
   m_file.reset();
   m_tree.release();     // apparently root has ownership
   m_lumiTree.release(); // 
   m_runTree.release(); // 
+  m_metaDataTree.release(); //
+  m_parameterSetsTree.release(); //
   edm::Service<edm::JobReport> jr;
   jr->outputFileClosed(m_jrToken);
 }
