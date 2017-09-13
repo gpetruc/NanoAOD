@@ -6,14 +6,13 @@
 #include "FWCore/Framework/interface/global/EDProducer.h"
 
 #include "FWCore/Framework/interface/Event.h"
-#include "FWCore/Framework/interface/MakerMacros.h"
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "FWCore/Utilities/interface/StreamID.h"
+#include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 
 #include "DataFormats/PatCandidates/interface/Muon.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
-#include "DataFormats/PatCandidates/interface/Electron.h"
 #include "DataFormats/MuonReco/interface/MuonSelectors.h"
 #include "PhysicsTools/NanoAOD/interface/FlatTable.h"
 
@@ -29,6 +28,14 @@ class MuonIDTableProducer : public edm::global::EDProducer<> {
         }
 
         ~MuonIDTableProducer() {};
+
+        static void fillDescriptions(edm::ConfigurationDescriptions & descriptions) {
+            edm::ParameterSetDescription desc;
+            desc.add<edm::InputTag>("muons")->setComment("input muon collection");
+            desc.add<edm::InputTag>("vertices", edm::InputTag("offlineSlimmedPrimaryVertices"))->setComment("input vertex collection, for dxy/dz");
+            desc.add<std::string>("name")->setComment("name of the muon FlatTable we are extending with IDs");
+            descriptions.add("muonIDTable", desc);
+        }
 
     private:
         void produce(edm::StreamID, edm::Event&, edm::EventSetup const&) const override ;
@@ -104,5 +111,6 @@ bool MuonIDTableProducer::isTrackerHighPt(const pat::Muon & mu, const reco::Vert
                          && mu.innerTrack()->hitPattern().trackerLayersWithMeasurement() > 5 );
 }
 
+#include "FWCore/Framework/interface/MakerMacros.h"
 //define this as a plug-in
 DEFINE_FWK_MODULE(MuonIDTableProducer);
