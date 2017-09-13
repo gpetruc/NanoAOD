@@ -23,6 +23,7 @@ process.source.fileNames = [
 	'/store/mc/RunIISummer17MiniAOD/TT_TuneCUETP8M2T4_13TeV-powheg-pythia8/MINIAODSIM/92X_upgrade2017_realistic_v10_ext1-v1/110000/187F7EDA-0986-E711-ABB3-02163E014C21.root'
 ]
 
+process.load("PhysicsTools.NanoAOD.adaptFrom92X_cff")
 process.load("PhysicsTools.NanoAOD.nano_cff")
 
 process.RandomNumberGeneratorService = cms.Service("RandomNumberGeneratorService",
@@ -33,7 +34,7 @@ process.RandomNumberGeneratorService = cms.Service("RandomNumberGeneratorService
                                       engineName = cms.untracked.string('TRandom3'),
                                       ),
 )
-process.nanoPath = cms.Path(process.nanoSequenceMC)
+process.nanoPath = cms.Path(process.adapt_nano + process.nanoSequenceMC)
 process.calibratedPatElectrons.isMC = cms.bool(True)
 process.calibratedPatPhotons.isMC = cms.bool(True)
 #for data:
