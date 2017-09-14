@@ -75,6 +75,7 @@ class BaseMVAValueMapProducer : public edm::stream::EDProducer<> {
 	values_[positions_[var]]=val;
   }
   
+  static edm::ParameterSetDescription getDescription();
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
    private:
@@ -124,13 +125,30 @@ BaseMVAValueMapProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& i
 }
 
 template <typename T>
+edm::ParameterSetDescription
+BaseMVAValueMapProducer<T>::getDescription(){
+  edm::ParameterSetDescription desc;
+  desc.add<edm::InputTag>("src")->setComment("input physics object collection");
+  desc.add<std::vector<std::string>>("variablesOrder")->setComment("ordered list of MVA input variable names");
+  desc.add<std::string>("name")->setComment("output score variable name");
+  desc.add<bool>("isClassifier")->setComment("is a classifier discriminator");
+  edm::ParameterSetDescription variables;
+  variables.setAllowAnything();
+  desc.add<edm::ParameterSetDescription>("variables", variables)->setComment("list of input variable definitions");
+  desc.add<edm::FileInPath>("weightFile")->setComment("xml weight file");
+  return desc;
+}
+
+template <typename T>
 void
 BaseMVAValueMapProducer<T>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
-  //The following says we do not know what parameters are allowed so do no validation
-  // Please change this to state exactly what you do use, even if it is no parameters
-  edm::ParameterSetDescription desc;
-  desc.setUnknown();
-  descriptions.addDefault(desc);
+  edm::ParameterSetDescription desc = getDescription();
+  std::string modname;
+  if (typeid(T) == typeid(pat::Jet)) modname+="Jet";
+  else if (typeid(T) == typeid(pat::Muon)) modname+="Muon";
+  else if (typeid(T) == typeid(pat::Electron)) modname+="Ele";
+  modname+="BaseMVAValueMapProducer";
+  descriptions.add(modname,desc);
 }
 
 
