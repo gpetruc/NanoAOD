@@ -46,8 +46,6 @@ simpleCleanerTable = cms.EDProducer("NanoAODSimpleCrossCleaner",
 
 
 genWeightsTable = cms.EDProducer("GenWeightsTableProducer",
-    name = cms.string("genEvent"),
-    doc  = cms.string("generator weights from GenEventInfoProduct (main per-event weight, may be negative)"),
     genEvent = cms.InputTag("generator"),
     lheInfo = cms.InputTag("externalLHEProducer"),
     preferredPDFs = cms.vuint32(91400,260001),

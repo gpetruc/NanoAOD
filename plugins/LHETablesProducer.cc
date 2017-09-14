@@ -1,8 +1,8 @@
 #include "FWCore/Framework/interface/global/EDProducer.h"
 #include "FWCore/Framework/interface/Event.h"
-#include "FWCore/Framework/interface/Run.h"
-#include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "PhysicsTools/NanoAOD/interface/FlatTable.h"
 #include "SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h"
 
@@ -81,6 +81,12 @@ class LHETablesProducer : public edm::global::EDProducer<> {
             out.addColumnValue<float>("HT", lheHT, "HT, scalar sum of parton pTs at LHE step", FlatTable::FloatColumn);
             out.addColumnValue<float>("HTIncoming", lheHTIncoming, "HT, scalar sum of parton pTs at LHE step, restricted to partons", FlatTable::FloatColumn);
             out.addColumnValue<float>("Vpt", lheVpt, "pT of the W or Z boson at LHE step", FlatTable::FloatColumn);
+        }
+
+        static void fillDescriptions(edm::ConfigurationDescriptions & descriptions) {
+            edm::ParameterSetDescription desc;
+            desc.add<edm::InputTag>("lheInfo", edm::InputTag("externalLHEProducer"))->setComment("tag for the LHE information (LHEEventProduct)");
+            descriptions.add("lheInfoTable", desc);
         }
 
     protected:
