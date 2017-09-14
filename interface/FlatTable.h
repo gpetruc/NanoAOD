@@ -8,6 +8,19 @@
 #include <FWCore/Utilities/interface/Exception.h>
 #include <DataFormats/PatCandidates/interface/libminifloat.h>
 
+namespace flatTableHelper {
+    template<typename T> struct MaybeMantissaReduce { 
+        MaybeMantissaReduce(int mantissaBits) {}
+        inline T one(const T &val) const  { return val; }
+        inline void bulk(boost::sub_range<std::vector<T>> data) const {  }
+    };
+    template<> struct MaybeMantissaReduce<float> {
+        int bits_; 
+        MaybeMantissaReduce(int mantissaBits) : bits_(mantissaBits) {}
+        inline float one(const float &val) const  { return (bits_ > 0 ? MiniFloatConverter::reduceMantissaToNbitsRounding(val, bits_) : val); }
+        inline void bulk(boost::sub_range<std::vector<float>> data) const { if (bits_ > 0) MiniFloatConverter::reduceMantissaToNbitsRounding(bits_, data.begin(), data.end(), data.begin()); }
+    };
+}
 class FlatTable {
   public:
     enum ColumnType { FloatColumn, IntColumn, UInt8Column, BoolColumn }; // We could have other Float types with reduced mantissa, and similar
@@ -61,9 +74,9 @@ class FlatTable {
         auto & vec = bigVector<T>();
         columns_.emplace_back(name,docString,type,vec.size());
         vec.insert(vec.end(), values.begin(), values.end());
-	if(type==FloatColumn and mantissaBits > 0){
-		for(auto & v : columnData<T>(columns_.size()-1)) v=MiniFloatConverter::reduceMantissaToNbits(v,mantissaBits);
-	}
+        if (type == FloatColumn) {
+            flatTableHelper::MaybeMantissaReduce<T>(mantissaBits).bulk(columnData<T>(columns_.size()-1));
+        }
     }
     template<typename T, typename C>
     void addColumnValue(const std::string & name, const C & value, const std::string & docString, ColumnType type = defaultColumnType<T>(),int mantissaBits=-1) {
@@ -72,10 +85,10 @@ class FlatTable {
         check_type<T>(type); // throws if type is wrong
         auto & vec = bigVector<T>();
         columns_.emplace_back(name,docString,type,vec.size());
-        if (type==FloatColumn and mantissaBits > 0) {
-            vec.push_back(MiniFloatConverter::reduceMantissaToNbits(value, mantissaBits));
+        if (type == FloatColumn) {
+            vec.push_back( flatTableHelper::MaybeMantissaReduce<T>(mantissaBits).one(value) );
         } else {
-            vec.push_back(value);
+            vec.push_back( value );
         }
     }
  
