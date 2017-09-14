@@ -20,7 +20,7 @@
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/stream/EDProducer.h"
+#include "FWCore/Framework/interface/global/EDProducer.h"
 
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
@@ -41,7 +41,7 @@
 //
 
 template <typename T>
-class EGMEnergyVarProducer : public edm::stream::EDProducer<> {
+class EGMEnergyVarProducer : public edm::global::EDProducer<> {
 public:
   explicit EGMEnergyVarProducer(const edm::ParameterSet &iConfig):
     srcRaw_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("srcRaw"))),
@@ -54,14 +54,7 @@ public:
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
 private:
-  virtual void beginStream(edm::StreamID) override {};
-  virtual void produce(edm::Event&, const edm::EventSetup&) override;
-  virtual void endStream() override {};
-
-  //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
-  //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
-  //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
-  //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
+  virtual void produce(edm::StreamID, edm::Event&, const edm::EventSetup&) const override;
 
   // ----------member data ---------------------------
 
@@ -85,18 +78,21 @@ private:
 // ------------ method called to produce the data  ------------
 template <typename T>
 void
-EGMEnergyVarProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
+EGMEnergyVarProducer<T>::produce(edm::StreamID streamID, edm::Event& iEvent, const edm::EventSetup& iSetup) const
 {
   edm::Handle<edm::View<T>> srcRaw;
   iEvent.getByToken(srcRaw_, srcRaw);
   edm::Handle<edm::View<T>> srcCorr;
   iEvent.getByToken(srcCorr_, srcCorr);
 
-  std::vector<float> eCorr(srcCorr->size(),-1);
+  unsigned nSrcRaw = srcRaw->size();
+  unsigned nSrcCorr = srcCorr->size();
 
-  for (uint ir = 0; ir<srcRaw->size(); ir++){
-    for (uint ic = 0; ic<srcCorr->size(); ic++){
-      auto egm_raw = srcRaw->ptrAt(ir);
+  std::vector<float> eCorr(nSrcCorr,-1);
+
+  for (uint ir = 0; ir<nSrcRaw; ir++){
+    auto egm_raw = srcRaw->ptrAt(ir);
+    for (uint ic = 0; ic<nSrcCorr; ic++){
       auto egm_corr = srcCorr->ptrAt(ic);
       if(matchByCommonParentSuperClusterRef(*egm_raw,*egm_corr)){
           eCorr[ir] = egm_corr->energy()/egm_raw->energy();
@@ -117,11 +113,14 @@ EGMEnergyVarProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& iSet
 template <typename T>
 void
 EGMEnergyVarProducer<T>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
-  //The following says we do not know what parameters are allowed so do no validation
-  // Please change this to state exactly what you do use, even if it is no parameters
   edm::ParameterSetDescription desc;
-  desc.setUnknown();
-  descriptions.addDefault(desc);
+  desc.add<edm::InputTag>("srcRaw")->setComment("input raw physics object collection");
+  desc.add<edm::InputTag>("srcCorr")->setComment("input corrected physics object collection");
+  std::string modname;
+  if (typeid(T) == typeid(pat::Electron)) modname+="Electron";
+  else if (typeid(T) == typeid(pat::Photon)) modname+="Photon";
+  modname+="EnergyVarProducer";
+  descriptions.add(modname,desc);
 }
 
 typedef EGMEnergyVarProducer<pat::Electron> ElectronEnergyVarProducer;

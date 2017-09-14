@@ -22,7 +22,7 @@
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/stream/EDProducer.h"
+#include "FWCore/Framework/interface/global/EDProducer.h"
 
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
@@ -42,7 +42,7 @@
 //
 
 template <typename T>
-class IsoValueMapProducer : public edm::stream::EDProducer<> {
+class IsoValueMapProducer : public edm::global::EDProducer<> {
    public:
   explicit IsoValueMapProducer(const edm::ParameterSet &iConfig):
     src_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("src"))),
@@ -74,14 +74,8 @@ class IsoValueMapProducer : public edm::stream::EDProducer<> {
       static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
    private:
-  virtual void beginStream(edm::StreamID) override {};
-  virtual void produce(edm::Event&, const edm::EventSetup&) override;
-  virtual void endStream() override {};
 
-      //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
-      //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
-      //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
-      //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
+  virtual void produce(edm::StreamID, edm::Event&, const edm::EventSetup&) const override;
 
       // ----------member data ---------------------------
 
@@ -96,9 +90,9 @@ class IsoValueMapProducer : public edm::stream::EDProducer<> {
   std::unique_ptr<EffectiveAreas> ea_pfiso_neu_;
   std::unique_ptr<EffectiveAreas> ea_pfiso_pho_;
   float getEtaForEA(const T*) const;
-  void doMiniIso(edm::Event&);
-  void doPFIsoEle(edm::Event&);
-  void doPFIsoPho(edm::Event&);
+  void doMiniIso(edm::Event&) const;
+  void doPFIsoEle(edm::Event&) const;
+  void doPFIsoPho(edm::Event&) const;
 
 };
 
@@ -123,7 +117,7 @@ template<> float IsoValueMapProducer<pat::Photon>::getEtaForEA(const pat::Photon
 
 template <typename T>
 void
-IsoValueMapProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
+IsoValueMapProducer<T>::produce(edm::StreamID streamID, edm::Event& iEvent, const edm::EventSetup& iSetup) const
 {
 
   if ((typeid(T) == typeid(pat::Muon)) || (typeid(T) == typeid(pat::Electron)) || typeid(T) == typeid(pat::IsolatedTrack)) { doMiniIso(iEvent); };
@@ -134,18 +128,20 @@ IsoValueMapProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
 
 template<typename T>
 void
-IsoValueMapProducer<T>::doMiniIso(edm::Event& iEvent){
+IsoValueMapProducer<T>::doMiniIso(edm::Event& iEvent) const{
 
   edm::Handle<edm::View<T>> src;
   iEvent.getByToken(src_, src);
   edm::Handle<double> rho;
   iEvent.getByToken(rho_,rho);
+
+  unsigned nInput = src->size();
   
   std::vector<float> miniIsoChg, miniIsoAll;
-  miniIsoChg.reserve(src->size());
-  miniIsoAll.reserve(src->size());
+  miniIsoChg.reserve(nInput);
+  miniIsoAll.reserve(nInput);
   
-  for (uint i=0; i<src->size(); i++){
+  for (uint i=0; i<nInput; i++){
     auto obj = const_cast<T*>(src->ptrAt(i).get()); // temporarily needed
     auto iso = obj->miniPFIsolation();
     auto chg = iso.chargedHadronIso();
@@ -173,27 +169,29 @@ IsoValueMapProducer<T>::doMiniIso(edm::Event& iEvent){
 
 template<>
 void
-IsoValueMapProducer<pat::Photon>::doMiniIso(edm::Event& iEvent) {}
+IsoValueMapProducer<pat::Photon>::doMiniIso(edm::Event& iEvent) const {}
 
 
 template<typename T>
 void
-IsoValueMapProducer<T>::doPFIsoEle(edm::Event& iEvent) {}
+IsoValueMapProducer<T>::doPFIsoEle(edm::Event& iEvent) const {}
 
 template<>
 void
-IsoValueMapProducer<pat::Electron>::doPFIsoEle(edm::Event& iEvent){
+IsoValueMapProducer<pat::Electron>::doPFIsoEle(edm::Event& iEvent) const{
 
   edm::Handle<edm::View<pat::Electron>> src;
   iEvent.getByToken(src_, src);
   edm::Handle<double> rho;
   iEvent.getByToken(rho_,rho);
   
+  unsigned nInput = src->size();
+
   std::vector<float> PFIsoChg, PFIsoAll;
-  PFIsoChg.reserve(src->size());
-  PFIsoAll.reserve(src->size());
+  PFIsoChg.reserve(nInput);
+  PFIsoAll.reserve(nInput);
   
-  for (uint i=0; i<src->size(); i++){
+  for (uint i=0; i<nInput; i++){
     auto obj = src->ptrAt(i).get();
     auto iso = obj->pfIsolationVariables();
     auto chg = iso.sumChargedHadronPt;
@@ -220,11 +218,11 @@ IsoValueMapProducer<pat::Electron>::doPFIsoEle(edm::Event& iEvent){
 
 template<typename T>
 void
-IsoValueMapProducer<T>::doPFIsoPho(edm::Event& iEvent) {}
+IsoValueMapProducer<T>::doPFIsoPho(edm::Event& iEvent) const {}
 
 template<>
 void
-IsoValueMapProducer<pat::Photon>::doPFIsoPho(edm::Event& iEvent){
+IsoValueMapProducer<pat::Photon>::doPFIsoPho(edm::Event& iEvent) const {
 
   edm::Handle<edm::View<pat::Photon>> src;
   iEvent.getByToken(src_, src);
@@ -237,11 +235,13 @@ IsoValueMapProducer<pat::Photon>::doPFIsoPho(edm::Event& iEvent){
   edm::Handle<edm::ValueMap<float> > mapIsoPho;
   iEvent.getByToken(mapIsoPho_, mapIsoPho);
   
+  unsigned nInput = src->size();
+
   std::vector<float> PFIsoChg, PFIsoAll;
-  PFIsoChg.reserve(src->size());
-  PFIsoAll.reserve(src->size());
+  PFIsoChg.reserve(nInput);
+  PFIsoAll.reserve(nInput);
   
-  for (uint i=0; i<src->size(); i++){
+  for (uint i=0; i<nInput; i++){
     auto obj = src->ptrAt(i);
     auto chg = (*mapIsoChg)[obj];
     auto neu = (*mapIsoNeu)[obj];
@@ -273,11 +273,30 @@ IsoValueMapProducer<pat::Photon>::doPFIsoPho(edm::Event& iEvent){
 template <typename T>
 void
 IsoValueMapProducer<T>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
-  //The following says we do not know what parameters are allowed so do no validation
-  // Please change this to state exactly what you do use, even if it is no parameters
   edm::ParameterSetDescription desc;
-  desc.setUnknown();
-  descriptions.addDefault(desc);
+  desc.add<edm::InputTag>("src")->setComment("input physics object collection");
+  desc.add<edm::InputTag>("rho")->setComment("rho to be used for effective-area based pileup subtraction");
+  if ((typeid(T) == typeid(pat::Muon)) || (typeid(T) == typeid(pat::Electron)) || typeid(T) == typeid(pat::IsolatedTrack)) {
+    desc.add<edm::FileInPath>("EAFile_MiniIso")->setComment("txt file containing effective areas to be used for mini-isolation pileup subtraction");
+  }
+  if ((typeid(T) == typeid(pat::Electron))) {
+    desc.add<edm::FileInPath>("EAFile_PFIso")->setComment("txt file containing effective areas to be used for PF-isolation pileup subtraction for electrons");
+  }
+  if ((typeid(T) == typeid(pat::Photon))) {
+    desc.add<edm::InputTag>("mapIsoChg")->setComment("input charged PF isolation calculated in VID for photons");
+    desc.add<edm::InputTag>("mapIsoNeu")->setComment("input neutral PF isolation calculated in VID for photons");
+    desc.add<edm::InputTag>("mapIsoPho")->setComment("input photon PF isolation calculated in VID for photons");
+    desc.add<edm::FileInPath>("EAFile_PFIso_Chg")->setComment("txt file containing effective areas to be used for charged PF-isolation pileup subtraction for photons");
+    desc.add<edm::FileInPath>("EAFile_PFIso_Neu")->setComment("txt file containing effective areas to be used for neutral PF-isolation pileup subtraction for photons");
+    desc.add<edm::FileInPath>("EAFile_PFIso_Pho")->setComment("txt file containing effective areas to be used for photon PF-isolation pileup subtraction for photons");
+  }
+  std::string modname;
+  if (typeid(T) == typeid(pat::Muon)) modname+="Muon";
+  else if (typeid(T) == typeid(pat::Electron)) modname+="Ele";
+  else if (typeid(T) == typeid(pat::Photon)) modname+="Pho";
+  else if (typeid(T) == typeid(pat::IsolatedTrack)) modname+="IsoTrack";
+  modname+="IsoValueMapProducer";
+  descriptions.add(modname,desc);
 }
 
 

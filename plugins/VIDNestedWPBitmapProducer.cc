@@ -109,7 +109,6 @@ VIDNestedWPBitmapProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup&
 
   auto npho = src->size();
   for (uint i=0; i<npho; i++){
-
     auto obj = src->ptrAt(i);
     for (uint j=0; j<nWP; j++){
       auto cutflow = (*(src_cutflows[j]))[obj];
@@ -154,11 +153,14 @@ VIDNestedWPBitmapProducer<T>::initNCuts(uint n){
 template <typename T>
 void
 VIDNestedWPBitmapProducer<T>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
-  //The following says we do not know what parameters are allowed so do no validation
-  // Please change this to state exactly what you do use, even if it is no parameters
   edm::ParameterSetDescription desc;
-  desc.setUnknown();
-  descriptions.addDefault(desc);
+  desc.add<edm::InputTag>("src")->setComment("input physics object collection");
+  desc.add<std::vector<std::string>>("WorkingPoints")->setComment("working points to be saved in the bitmask");
+  std::string modname;
+  if (typeid(T) == typeid(pat::Electron)) modname+="Ele";
+  else if (typeid(T) == typeid(pat::Photon)) modname+="Pho";
+  modname+="VIDNestedWPBitmapProducer";
+  descriptions.add(modname,desc);
 }
 
 
