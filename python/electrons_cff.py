@@ -4,6 +4,7 @@ from math import ceil,log
 
 from PhysicsTools.SelectorUtils.tools.vid_id_tools import setupVIDSelection
 from RecoEgamma.ElectronIdentification.egmGsfElectronIDs_cff import *
+electronMVAValueMapProducer.srcMiniAOD = cms.InputTag("slimmedElectrons")
 egmGsfElectronIDs.physicsObjectIDs = cms.VPSet()
 egmGsfElectronIDs.physicsObjectSrc = cms.InputTag('slimmedElectrons')
 _electron_id_vid_modules=[
@@ -44,6 +45,7 @@ isoForEle = cms.EDProducer("EleIsoValueMapProducer",
 ptRatioRelForEle = cms.EDProducer("ElectronJetVarProducer",
     srcJet = cms.InputTag("slimmedJets"),
     srcLep = cms.InputTag("slimmedElectrons"),
+    srcVtx = cms.InputTag("offlineSlimmedPrimaryVertices"),
 )
 
 from EgammaAnalysis.ElectronTools.calibratedElectronsRun2_cfi import calibratedPatElectrons
@@ -70,6 +72,7 @@ slimmedElectronsWithUserData = cms.EDProducer("PATElectronUserDataEmbedder",
         PFIsoAll = cms.InputTag("isoForEle:PFIsoAll"),
         ptRatio = cms.InputTag("ptRatioRelForEle:ptRatio"),
         ptRel = cms.InputTag("ptRatioRelForEle:ptRel"),
+        jetNDauChargedMVASel = cms.InputTag("ptRatioRelForEle:jetNDauChargedMVASel"),
         eCorr = cms.InputTag("energyCorrForEle:eCorr"),
     ),
     userIntFromBools = cms.PSet(
@@ -90,6 +93,28 @@ slimmedElectronsWithUserData = cms.EDProducer("PATElectronUserDataEmbedder",
     ),
 )
 
+electronMVATTH= cms.EDProducer("EleBaseMVAValueMapProducer",
+    src = cms.InputTag("linkedObjects","electrons"),
+    weightFile =  cms.FileInPath("PhysicsTools/NanoAOD/data/el_BDTG.weights.xml"),
+    name = cms.string("electronMVATTH"),
+    isClassifier = cms.bool(True),
+    variablesOrder = cms.vstring(["LepGood_pt","LepGood_eta","LepGood_jetNDauChargedMVASel","LepGood_miniRelIsoCharged","LepGood_miniRelIsoNeutral","LepGood_jetPtRelv2","LepGood_jetPtRatio","LepGood_jetBTagCSV","LepGood_sip3d","LepGood_dxy","LepGood_dz","LepGood_mvaIdSpring16HZZ"]),
+    variables = cms.PSet(
+        LepGood_pt = cms.string("pt"),
+        LepGood_eta = cms.string("eta"),
+        LepGood_jetNDauChargedMVASel = cms.string("userFloat('jetNDauChargedMVASel')"),
+        LepGood_miniRelIsoCharged = cms.string("userFloat('miniIsoChg')/pt"),
+        LepGood_miniRelIsoNeutral = cms.string("(userFloat('miniIsoAll')-userFloat('miniIsoChg'))/pt"),
+        LepGood_jetPtRelv2 = cms.string("userFloat('ptRel')"),
+        LepGood_jetPtRatio = cms.string("min(userFloat('ptRatio'),1.5)"),
+        LepGood_jetBTagCSV = cms.string("?userCand('jetForLepJetVar').isNonnull()?max(userCand('jetForLepJetVar').bDiscriminator('pfCombinedInclusiveSecondaryVertexV2BJetTags'),0.0):-99.0"),
+        LepGood_sip3d = cms.string("abs(dB('PV3D')/edB('PV3D'))"),
+        LepGood_dxy = cms.string("log(abs(dB('PV2D')))"),
+        LepGood_dz = cms.string("log(abs(dB('PVDZ')))"),
+        LepGood_mvaIdSpring16HZZ = cms.string("userFloat('mvaSpring16HZZ')"),
+    )
+)
+
 electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("linkedObjects","electrons"),
     cut = cms.string(""), #we should not filter on cross linked collections
@@ -103,8 +128,8 @@ electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         #ptErr = Var("gsfTrack().ptError()",float,doc="pt error of the GSF track",precision=6),
         energyErr = Var("p4Error('P4_COMBINATION')*userFloat('eCorr')",float,doc="energy error of the cluster-track combination",precision=6),
         eCorr = Var("userFloat('eCorr')",float,doc="ratio of the calibrated energy/miniaod energy"),
-        #dz = Var("abs(dB('PVDZ'))",float,doc="dz (with sign) wrt first PV, in cm",precision=10),
-        #dzErr = Var("abs(edB('PVDZ'))",float,doc="dz uncertainty, in cm",precision=6),
+        dz = Var("abs(dB('PVDZ'))",float,doc="dz (with sign) wrt first PV, in cm",precision=10),
+        dzErr = Var("abs(edB('PVDZ'))",float,doc="dz uncertainty, in cm",precision=6),
         dxy = Var("dB('PV2D')",float,doc="dxy (with sign) wrt first PV, in cm",precision=10),
         dxyErr = Var("edB('PV2D')",float,doc="dxy uncertainty, in cm",precision=6),
         ip3d = Var("abs(dB('PV3D'))",float,doc="3D impact parameter wrt first PV, in cm",precision=10),
@@ -128,7 +153,10 @@ electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         tightCharge = Var("isGsfCtfScPixChargeConsistent() + isGsfScPixChargeConsistent()",int,doc="Tight charge criteria (0:none, 1:isGsfScPixChargeConsistent, 2:isGsfCtfScPixChargeConsistent)"),
         convVeto = Var("passConversionVeto()",bool,doc="pass conversion veto"),
         lostHits = Var("gsfTrack.hitPattern.numberOfLostHits('MISSING_INNER_HITS')","uint8",doc="number of missing inner hits"),
-    )
+    ),
+    externalVariables = cms.PSet(
+        mvaTTH = ExtVar(cms.InputTag("electronMVATTH"),float, doc="TTH MVA lepton ID score",precision=14),
+    ),
 )
 electronTable.variables.pt = Var("pt*userFloat('eCorr')",  float, precision=-1)
 
@@ -154,5 +182,5 @@ electronMCTable = cms.EDProducer("CandMCMatchTableProducer",
 )
 
 electronSequence = cms.Sequence(egmGsfElectronIDSequence + bitmapVIDForEle + isoForEle + ptRatioRelForEle + calibratedPatElectrons + energyCorrForEle + slimmedElectronsWithUserData + finalElectrons)
-electronTables = cms.Sequence ( electronTable)
+electronTables = cms.Sequence (electronMVATTH + electronTable)
 electronMC = cms.Sequence(electronsMCMatchForTable + electronMCTable)

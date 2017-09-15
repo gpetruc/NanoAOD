@@ -94,6 +94,7 @@ bjetMVA= cms.EDProducer("BJetEnergyRegressionMVA",
     svsrc = cms.InputTag("slimmedSecondaryVertices"),
     weightFile =  cms.FileInPath("PhysicsTools/NanoAOD/data/bjet-regression.xml"),
     name = cms.string("JetReg"),
+    isClassifier = cms.bool(False),
     variablesOrder = cms.vstring(["Jet_pt","nPVs","Jet_eta","Jet_mt","Jet_leadTrackPt","Jet_leptonPtRel","Jet_leptonPt","Jet_leptonDeltaR","Jet_neHEF","Jet_neEmEF","Jet_vtxPt","Jet_vtxMass","Jet_vtx3dL","Jet_vtxNtrk","Jet_vtx3deL"]),
     variables = cms.PSet(
 	Jet_pt = cms.string("pt"),

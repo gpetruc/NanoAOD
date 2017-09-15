@@ -10,6 +10,7 @@ isoForMu = cms.EDProducer("MuonIsoValueMapProducer",
 ptRatioRelForMu = cms.EDProducer("MuonJetVarProducer",
     srcJet = cms.InputTag("slimmedJets"),
     srcLep = cms.InputTag("slimmedMuons"),
+    srcVtx = cms.InputTag("offlineSlimmedPrimaryVertices"),
 )
 
 slimmedMuonsWithUserData = cms.EDProducer("PATMuonUserDataEmbedder",
@@ -19,6 +20,7 @@ slimmedMuonsWithUserData = cms.EDProducer("PATMuonUserDataEmbedder",
         miniIsoAll = cms.InputTag("isoForMu:miniIsoAll"),
         ptRatio = cms.InputTag("ptRatioRelForMu:ptRatio"),
         ptRel = cms.InputTag("ptRatioRelForMu:ptRel"),
+        jetNDauChargedMVASel = cms.InputTag("ptRatioRelForMu:jetNDauChargedMVASel"),
      ),
      userCands = cms.PSet(
         jetForLepJetVar = cms.InputTag("ptRatioRelForMu:jetForLepJetVar") # warning: Ptr is null if no match is found
@@ -30,6 +32,28 @@ finalMuons = cms.EDFilter("PATMuonRefSelector",
     cut = cms.string("pt > 3 && track.isNonnull && isLooseMuon")
 )
 
+muonMVATTH= cms.EDProducer("MuonBaseMVAValueMapProducer",
+    src = cms.InputTag("linkedObjects","muons"),
+    weightFile =  cms.FileInPath("PhysicsTools/NanoAOD/data/mu_BDTG.weights.xml"),
+    name = cms.string("muonMVATTH"),
+    isClassifier = cms.bool(True),
+    variablesOrder = cms.vstring(["LepGood_pt","LepGood_eta","LepGood_jetNDauChargedMVASel","LepGood_miniRelIsoCharged","LepGood_miniRelIsoNeutral","LepGood_jetPtRelv2","LepGood_jetPtRatio","LepGood_jetBTagCSV","LepGood_sip3d","LepGood_dxy","LepGood_dz","LepGood_segmentCompatibility"]),
+    variables = cms.PSet(
+        LepGood_pt = cms.string("pt"),
+        LepGood_eta = cms.string("eta"),
+        LepGood_jetNDauChargedMVASel = cms.string("userFloat('jetNDauChargedMVASel')"),
+        LepGood_miniRelIsoCharged = cms.string("userFloat('miniIsoChg')/pt"),
+        LepGood_miniRelIsoNeutral = cms.string("(userFloat('miniIsoAll')-userFloat('miniIsoChg'))/pt"),
+        LepGood_jetPtRelv2 = cms.string("userFloat('ptRel')"),
+        LepGood_jetPtRatio = cms.string("min(userFloat('ptRatio'),1.5)"),
+        LepGood_jetBTagCSV = cms.string("?userCand('jetForLepJetVar').isNonnull()?max(userCand('jetForLepJetVar').bDiscriminator('pfCombinedInclusiveSecondaryVertexV2BJetTags'),0.0):-99.0"),
+        LepGood_sip3d = cms.string("abs(dB('PV3D')/edB('PV3D'))"),
+        LepGood_dxy = cms.string("log(abs(dB('PV2D')))"),
+        LepGood_dz = cms.string("log(abs(dB('PVDZ')))"),
+        LepGood_segmentCompatibility = cms.string("segmentCompatibility"),
+    )
+)
+
 muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("linkedObjects","muons"),
     cut = cms.string(""), #we should not filter on cross linked collections
@@ -39,8 +63,8 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     extension = cms.bool(False), # this is the main table for the muons
     variables = cms.PSet(CandVars,
         ptErr   = Var("bestTrack().ptError()", float, doc = "ptError of the muon track", precision=6),
-        #dz = Var("abs(dB('PVDZ'))",float,doc="dz (with sign) wrt first PV, in cm",precision=10),
-        #dzErr = Var("abs(edB('PVDZ'))",float,doc="dz uncertainty, in cm",precision=6),
+        dz = Var("abs(dB('PVDZ'))",float,doc="dz (with sign) wrt first PV, in cm",precision=10),
+        dzErr = Var("abs(edB('PVDZ'))",float,doc="dz uncertainty, in cm",precision=6),
         dxy = Var("dB('PV2D')",float,doc="dxy (with sign) wrt first PV, in cm",precision=10),
         dxyErr = Var("edB('PV2D')",float,doc="dxy uncertainty, in cm",precision=6),
         ip3d = Var("abs(dB('PV3D'))",float,doc="3D impact parameter wrt first PV, in cm",precision=10),
@@ -53,6 +77,9 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         PFIso03_chg = Var("pfIsolationR03().sumChargedHadronPt",float,doc="PF isolation dR=0.3, charged component"),
         PFIso03_all = Var("(pfIsolationR03().sumChargedHadronPt + max(pfIsolationR03().sumNeutralHadronEt + pfIsolationR03().sumPhotonEt - pfIsolationR03().sumPUPt/2,0.0))",float,doc="PF isolation dR=0.3, total (deltaBeta corrections)"),
         tightCharge = Var("?(muonBestTrack().ptError()/muonBestTrack().pt() < 0.2)?2:0",int,doc="Tight charge criterion using pterr/pt of muonBestTrack (0:fail, 2:pass)"),
+    ),
+    externalVariables = cms.PSet(
+        mvaTTH = ExtVar(cms.InputTag("muonMVATTH"),float, doc="TTH MVA lepton ID score",precision=14),
     ),
 )
 
@@ -86,5 +113,5 @@ muonMCTable = cms.EDProducer("CandMCMatchTableProducer",
 
 muonSequence = cms.Sequence(isoForMu + ptRatioRelForMu + slimmedMuonsWithUserData + finalMuons)
 muonMC = cms.Sequence(muonsMCMatchForTable + muonMCTable)
-muonTables = cms.Sequence(muonTable + muonIDTable)
+muonTables = cms.Sequence(muonMVATTH + muonTable + muonIDTable)
 
