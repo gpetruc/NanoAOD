@@ -22,7 +22,7 @@
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/stream/EDProducer.h"
+#include "FWCore/Framework/interface/global/EDProducer.h"
 
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
@@ -45,7 +45,7 @@
 //
 
 template <typename T>
-class LeptonJetVarProducer : public edm::stream::EDProducer<> {
+class LeptonJetVarProducer : public edm::global::EDProducer<> {
    public:
   explicit LeptonJetVarProducer(const edm::ParameterSet &iConfig):
     srcJet_(consumes<edm::View<pat::Jet>>(iConfig.getParameter<edm::InputTag>("srcJet"))),
@@ -62,16 +62,9 @@ class LeptonJetVarProducer : public edm::stream::EDProducer<> {
       static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
    private:
-  virtual void beginStream(edm::StreamID) override {};
-  virtual void produce(edm::Event&, const edm::EventSetup&) override;
-  virtual void endStream() override {};
+  virtual void produce(edm::StreamID, edm::Event&, const edm::EventSetup&) const override;
 
-      //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
-      //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
-      //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
-      //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
-
-  std::tuple<float,float,float> calculatePtRatioRel(auto &lep, auto &jet, auto &vtx);
+  std::tuple<float,float,float> calculatePtRatioRel(auto &lep, auto &jet, auto &vtx) const;
 
       // ----------member data ---------------------------
 
@@ -96,7 +89,7 @@ class LeptonJetVarProducer : public edm::stream::EDProducer<> {
 // ------------ method called to produce the data  ------------
 template <typename T>
 void
-LeptonJetVarProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
+LeptonJetVarProducer<T>::produce(edm::StreamID streamID, edm::Event& iEvent, const edm::EventSetup& iSetup) const
 {
 
   edm::Handle<edm::View<pat::Jet>> srcJet;
@@ -106,15 +99,18 @@ LeptonJetVarProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& iSet
   edm::Handle<std::vector<reco::Vertex>> srcVtx;
   iEvent.getByToken(srcVtx_, srcVtx);
 
-  std::vector<float> ptRatio(srcLep->size(),-1);
-  std::vector<float> ptRel(srcLep->size(),-1);
-  std::vector<float> jetNDauChargedMVASel(srcLep->size(),0);
-  std::vector<reco::CandidatePtr> jetForLepJetVar(srcLep->size(),reco::CandidatePtr());
+  unsigned nJet = srcJet->size();
+  unsigned nLep = srcLep->size();
+
+  std::vector<float> ptRatio(nLep,-1);
+  std::vector<float> ptRel(nLep,-1);
+  std::vector<float> jetNDauChargedMVASel(nLep,0);
+  std::vector<reco::CandidatePtr> jetForLepJetVar(nLep,reco::CandidatePtr());
 
   const auto & pv = (*srcVtx)[0];
 
-  for (uint il = 0; il<srcLep->size(); il++){
-    for (uint ij = 0; ij<srcJet->size(); ij++){
+  for (uint il = 0; il<nLep; il++){
+    for (uint ij = 0; ij<nJet; ij++){
       auto lep = srcLep->ptrAt(il);
       auto jet = srcJet->ptrAt(ij);
       if(matchByCommonSourceCandidatePtr(*lep,*jet)){
@@ -157,7 +153,7 @@ LeptonJetVarProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& iSet
 
 template <typename T>
 std::tuple<float,float,float>
-LeptonJetVarProducer<T>::calculatePtRatioRel(auto &lep, auto &jet, auto &vtx) {
+LeptonJetVarProducer<T>::calculatePtRatioRel(auto &lep, auto &jet, auto &vtx) const {
  
   auto rawp4_ = jet->correctedP4("Uncorrected");
   auto rawp4 = TLorentzVector(rawp4_.pt(),rawp4_.eta(),rawp4_.phi(),rawp4_.energy());
@@ -196,8 +192,13 @@ LeptonJetVarProducer<T>::fillDescriptions(edm::ConfigurationDescriptions& descri
   //The following says we do not know what parameters are allowed so do no validation
   // Please change this to state exactly what you do use, even if it is no parameters
   edm::ParameterSetDescription desc;
-  desc.setUnknown();
-  descriptions.addDefault(desc);
+  desc.add<edm::InputTag>("srcJet")->setComment("jet input collection");
+  desc.add<edm::InputTag>("srcLep")->setComment("lepton input collection");
+  std::string modname;
+  if (typeid(T) == typeid(pat::Muon)) modname+="Muon";
+  else if (typeid(T) == typeid(pat::Electron)) modname+="Electron";
+  modname+="JetVarProducer";
+  descriptions.add(modname,desc);
 }
 
 typedef LeptonJetVarProducer<pat::Muon> MuonJetVarProducer;

@@ -22,7 +22,7 @@
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/stream/EDProducer.h"
+#include "FWCore/Framework/interface/global/EDProducer.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "CondFormats/DataRecord/interface/L1GtTriggerMenuRcd.h"
 #include "CondFormats/DataRecord/interface/L1GtTriggerMaskAlgoTrigRcd.h"
@@ -47,7 +47,7 @@
 // class declaration
 //
 
-class L1TriggerResultsConverter : public edm::stream::EDProducer<> {
+class L1TriggerResultsConverter : public edm::global::EDProducer<> {
    public:
       explicit L1TriggerResultsConverter(const edm::ParameterSet&);
       ~L1TriggerResultsConverter();
@@ -55,14 +55,8 @@ class L1TriggerResultsConverter : public edm::stream::EDProducer<> {
       static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
    private:
-      virtual void beginStream(edm::StreamID) override;
-      virtual void produce(edm::Event&, const edm::EventSetup&) override;
-      virtual void endStream() override;
-
-      virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
-      //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
-      //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
-      //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
+      virtual void produce(edm::StreamID, edm::Event&, const edm::EventSetup&) const override;
+      virtual void beginRun(edm::StreamID, edm::Run const&, edm::EventSetup const&);
 
       // ----------member data ---------------------------
       const bool legacyL1_;
@@ -100,7 +94,7 @@ L1TriggerResultsConverter::~L1TriggerResultsConverter()
 // member functions
 //
 
-void L1TriggerResultsConverter::beginRun(edm::Run const&, edm::EventSetup const&setup) {
+void L1TriggerResultsConverter::beginRun(edm::StreamID streamID, edm::Run const&, edm::EventSetup const&setup) {
     mask_.clear();
     names_.clear();
     indices_.clear();
@@ -131,7 +125,7 @@ void L1TriggerResultsConverter::beginRun(edm::Run const&, edm::EventSetup const&
 
 
 void
-L1TriggerResultsConverter::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
+L1TriggerResultsConverter::produce(edm::StreamID streamID, edm::Event& iEvent, const edm::EventSetup& iSetup) const
 {
     using namespace edm;
     const std::vector<bool> * wordp=nullptr;
@@ -148,7 +142,8 @@ L1TriggerResultsConverter::produce(edm::Event& iEvent, const edm::EventSetup& iS
     auto const &word = *wordp;
     HLTGlobalStatus l1bitsAsHLTStatus(names_.size());
 //    std::cout << word.size() << " " << names_.size() << " " << mask_.size()  << std::endl;
-    for(size_t nidx=0;nidx<indices_.size(); nidx++) {
+    unsigned indices_size = indices_.size();
+    for(size_t nidx=0;nidx<indices_size; nidx++) {
         unsigned int index = indices_[nidx];
         bool result =word[index];
 	if(!mask_.empty()) result &=  (mask_[index] !=0);
@@ -160,25 +155,13 @@ L1TriggerResultsConverter::produce(edm::Event& iEvent, const edm::EventSetup& iS
 
 }
 
-// ------------ method called once each stream before processing any runs, lumis or events  ------------
-void
-L1TriggerResultsConverter::beginStream(edm::StreamID)
-{
-}
-
-// ------------ method called once each stream after processing all runs, lumis and events  ------------
-void
-L1TriggerResultsConverter::endStream() {
-}
-
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void
 L1TriggerResultsConverter::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
-  //The following says we do not know what parameters are allowed so do no validation
-  // Please change this to state exactly what you do use, even if it is no parameters
   edm::ParameterSetDescription desc;
-  desc.setUnknown();
-  descriptions.addDefault(desc);
+  desc.add<bool>("legacyL1")->setComment("is legacy L1");
+  desc.add<edm::InputTag>("src")->setComment("L1 input (L1GlobalTriggerReadoutRecord if legacy, GlobalAlgBlkBxCollection otherwise)");
+  descriptions.add("L1TriggerResultsConverter",desc);
 }
 
 //define this as a plug-in

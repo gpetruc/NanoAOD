@@ -1,8 +1,8 @@
 #include "FWCore/Framework/interface/global/EDProducer.h"
 #include "FWCore/Framework/interface/Event.h"
-#include "FWCore/Framework/interface/Run.h"
-#include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "PhysicsTools/NanoAOD/interface/FlatTable.h"
 #include "DataFormats/Common/interface/View.h"
 #include "DataFormats/Candidate/interface/Candidate.h"
@@ -123,6 +123,18 @@ class CandMCMatchTableProducer : public edm::global::EDProducer<> {
                 }
             }
             return has4 ? 4 : 3;
+        }
+
+        static void fillDescriptions(edm::ConfigurationDescriptions & descriptions) {
+            edm::ParameterSetDescription desc;
+            desc.add<std::string>("objName")->setComment("name of the FlatTable to extend with this table");
+            desc.add<std::string>("branchName")->setComment("name of the column to write (the final branch in the nanoaod will be <objName>_<branchName>Idx and <objName>_<branchName>Flav");
+            desc.add<std::string>("docString")->setComment("documentation to forward to the output");
+            desc.add<edm::InputTag>("src")->setComment("physics object collection for the reconstructed objects (e.g. leptons)");
+            desc.add<edm::InputTag>("mcMap")->setComment("tag to an edm::Association<GenParticleCollection> mapping src to gen, such as the one produced by MCMatcher");
+            desc.add<std::string>("objType")->setComment("type of object to match (Muon, Electron, Tau, Photon, Other), taylors what's in t Flav branch");
+            desc.addOptional<edm::InputTag>("mcMapVisTau")->setComment("as mcMap, but pointing to the visible gen taus (only if objType == Tau)");
+            descriptions.add("candMcMatchTable", desc);
         }
 
     protected:

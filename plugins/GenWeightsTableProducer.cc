@@ -4,6 +4,8 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "PhysicsTools/NanoAOD/interface/FlatTable.h"
 #include "PhysicsTools/NanoAOD/interface/MergableCounterTable.h"
+#include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 #include "SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h"
 #include "SimDataFormats/GeneratorProducts/interface/LHERunInfoProduct.h"
@@ -372,6 +374,21 @@ class GenWeightsTableProducer : public edm::global::EDProducer<edm::StreamCache<
         }
         // nothing to do here
         void globalEndRun(edm::Run const&, edm::EventSetup const&) const override { }
+
+        static void fillDescriptions(edm::ConfigurationDescriptions & descriptions) {
+            edm::ParameterSetDescription desc;
+            desc.add<edm::InputTag>("genEvent", edm::InputTag("generator"))->setComment("tag for the GenEventInfoProduct, to get the main weight");
+            desc.add<edm::InputTag>("lheInfo", edm::InputTag("externalLHEProducer"))->setComment("tag for the LHE information (LHEEventProduct and LHERunInfoProduct)");
+            desc.add<std::vector<uint32_t>>("preferredPDFs")->setComment("LHA PDF Ids of the preferred PDF sets, in order of preference (the first matching one will be used)");
+            desc.add<std::vector<std::string>>("namedWeightIDs")->setComment("set of LHA weight IDs for named LHE weights");
+            desc.add<std::vector<std::string>>("namedWeightLabels")->setComment("output names for the namedWeightIDs (in the same order)");
+            desc.add<int32_t>("lheWeightPrecision")->setComment("Number of bits in the mantissa for LHE weights");
+            desc.add<uint32_t>("maxPdfWeights")->setComment("Maximum number of PDF weights to save (to crop NN replicas)");
+            desc.addOptionalUntracked<bool>("debug")->setComment("dump out all LHE information for one event");
+            descriptions.add("genWeightsTable", desc);
+        }
+
+
     protected:
         const edm::EDGetTokenT<GenEventInfoProduct> genTag_;
         const edm::InputTag lheLabel_;
