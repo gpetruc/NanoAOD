@@ -194,6 +194,7 @@ LeptonJetVarProducer<T>::fillDescriptions(edm::ConfigurationDescriptions& descri
   edm::ParameterSetDescription desc;
   desc.add<edm::InputTag>("srcJet")->setComment("jet input collection");
   desc.add<edm::InputTag>("srcLep")->setComment("lepton input collection");
+  desc.add<edm::InputTag>("srcVtx")->setComment("primary vertex input collection");
   std::string modname;
   if (typeid(T) == typeid(pat::Muon)) modname+="Muon";
   else if (typeid(T) == typeid(pat::Electron)) modname+="Electron";
