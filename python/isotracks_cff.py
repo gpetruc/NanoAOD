@@ -13,7 +13,7 @@ finalIsolatedTracks = cms.EDProducer("IsolatedTrackCleaner",
 
 isoForIsoTk = cms.EDProducer("IsoTrackIsoValueMapProducer",
     src = cms.InputTag("finalIsolatedTracks"),
-    rho = cms.InputTag("fixedGridRhoFastjetCentralNeutral"),
+    rho_MiniIso = cms.InputTag("fixedGridRhoFastjetCentralNeutral"),
     EAFile_MiniIso = cms.FileInPath("PhysicsTools/NanoAOD/data/effAreaMuons_cone03_pfNeuHadronsAndPhotons_80X.txt"),
 )
 
