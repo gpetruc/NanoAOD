@@ -4,6 +4,7 @@ from math import ceil,log
 
 from PhysicsTools.SelectorUtils.tools.vid_id_tools import setupVIDSelection
 from RecoEgamma.ElectronIdentification.egmGsfElectronIDs_cff import *
+electronMVAValueMapProducer.srcMiniAOD = cms.InputTag("slimmedElectrons")
 egmGsfElectronIDs.physicsObjectIDs = cms.VPSet()
 egmGsfElectronIDs.physicsObjectSrc = cms.InputTag('slimmedElectrons')
 _electron_id_vid_modules=[

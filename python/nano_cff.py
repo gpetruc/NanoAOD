@@ -12,6 +12,7 @@ from PhysicsTools.NanoAOD.met_cff import *
 from PhysicsTools.NanoAOD.triggerObjects_cff import *
 from PhysicsTools.NanoAOD.isotracks_cff import *
 from PhysicsTools.NanoAOD.NanoAODEDMEventContent_cff import *
+from PhysicsTools.NanoAOD.adaptFrom92X_cff import * # remove when 94X MC becomes available
 
 nanoMetadata = cms.EDProducer("UniqueStringProducer",
     strings = cms.PSet(
@@ -61,7 +62,9 @@ lheInfoTable = cms.EDProducer("LHETablesProducer",
 
 l1bits=cms.EDProducer("L1TriggerResultsConverter", src=cms.InputTag("gtStage2Digis"), legacyL1=cms.bool(False))
 
-nanoSequence = cms.Sequence(nanoMetadata + muonSequence + jetSequence + tauSequence + electronSequence+photonSequence+vertexSequence+#metSequence+
+nanoSequence = cms.Sequence(
+        adapt_nano + # remove when 94X MC becomes available
+        nanoMetadata + muonSequence + jetSequence + tauSequence + electronSequence+photonSequence+vertexSequence+#metSequence+
         isoTrackSequence + # must be after all the leptons 
         linkedObjects  +
         jetTables + muonTables + tauTables + electronTables + photonTables +  globalTables +vertexTables+ metTables+simpleCleanerTable + triggerObjectTables + isoTrackTables +
