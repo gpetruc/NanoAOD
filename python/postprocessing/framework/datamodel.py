@@ -7,14 +7,7 @@ class Event:
     def __init__(self,tree,entry):
         self._tree = tree
         self._entry = entry
-        self._sync()
-    def _sync(self):
-        if self._tree.entry != self._entry:
-            if (self._tree.entry == self._entry-1):
-                self._tree._ttreereader.Next()
-            else:
-                self._tree._ttreereader.SetEntry(self._entry)
-            self._tree.entry = self._entry
+        self._tree.gotoEntry(entry)
     def __getattr__(self,name):
         if name in self.__dict__: return self.__dict__[name]
         return self._tree.readBranch(name)
@@ -46,7 +39,7 @@ class Event:
             self._tree.entry = self._entry
             #self._tree._exprs[expr].SetQuickLoad(False)
         else:
-            self._sync()
+            self._tree.gotoEntry(entry)
             formula = self._tree._exprs[expr]
         if "[" in expr: # unclear why this is needed, but otherwise for some arrays x[i] == 0 for all i > 0
             formula.GetNdata()

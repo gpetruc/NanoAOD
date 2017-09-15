@@ -69,7 +69,7 @@ class FullOutput(OutputTree):
         self._inputTree = inputTree
         # FIXME process the other TTrees
     def fill(self):
-        self._inputTree.GetEntry(self._inputTree.entry)
+        self._inputTree.readAllBranches()
         self._tree.Fill()
 
 class FriendOutput(OutputTree):

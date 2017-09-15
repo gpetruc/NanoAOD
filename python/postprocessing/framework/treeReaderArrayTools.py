@@ -6,8 +6,8 @@ def InputTree(tree,entrylist=None):
     """add to the PyROOT wrapper of a TTree a TTreeReader and methods readBranch, arrayReader, valueReader""" 
     if hasattr(tree, '_ttreereader'): return tree # don't initialize twice
     tree.entry = -1
-    tree._ttreereader = ROOT.TTreeReader(tree,entrylist)
-    #if entrylist: print "Created with an entrylist with %d events" % entrylist.GetN()
+    tree._entrylist = entrylist
+    tree._ttreereader = ROOT.TTreeReader(tree,tree._entrylist)
     tree._ttreereader.SetEntry(0)
     tree._ttrvs = {}
     tree._ttras = {}
@@ -16,6 +16,8 @@ def InputTree(tree,entrylist=None):
     tree.arrayReader = types.MethodType(getArrayReader, tree)
     tree.valueReader = types.MethodType(getValueReader, tree)
     tree.readBranch = types.MethodType(readBranch, tree)
+    tree.gotoEntry = types.MethodType(_gotoEntry, tree)
+    tree.readAllBranches = types.MethodType(_readAllBranches, tree)
     tree.entries = tree._ttreereader.GetEntries(False)
     return tree
 
@@ -78,7 +80,7 @@ def _makeValueReader(tree, typ, nam, remakeAllFirst=True):
     return tree._ttrvs[nam]
 
 def _remakeAllReaders(tree):
-    _ttreereader = ROOT.TTreeReader(tree)
+    _ttreereader = ROOT.TTreeReader(tree, getattr(tree, '_entrylist', None))
     _ttrvs = {}
     for k in tree._ttrvs.iterkeys():
         _ttrvs[k] = ROOT.TTreeReaderValue(tree._leafTypes[k])(_ttreereader,k)
@@ -89,3 +91,21 @@ def _remakeAllReaders(tree):
     tree._ttras = _ttras
     tree._ttreereader = _ttreereader
     tree._ttreereaderversion += 1
+
+def _readAllBranches(tree):
+    tree.GetEntry(_currentTreeEntry(tree))
+
+def _currentTreeEntry(tree):
+    if tree._entrylist:
+        return tree._entrylist.GetEntry(tree.entry)
+    else:
+        tree.entry
+
+def _gotoEntry(tree, entry):
+    if tree.entry != entry:
+        if (tree.entry == entry-1):
+            tree._ttreereader.Next()
+        else:
+            tree._ttreereader.SetEntry(entry)
+        tree.entry = entry
+
