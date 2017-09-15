@@ -50,12 +50,12 @@ class BaseMVAValueMapProducer : public edm::stream::EDProducer<> {
   explicit BaseMVAValueMapProducer(const edm::ParameterSet &iConfig):
     src_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("src"))),
     variablesOrder_(iConfig.getParameter<std::vector<std::string>>("variablesOrder")),
-    name_(iConfig.getParameter<std::string>("name"))
+    name_(iConfig.getParameter<std::string>("name")),
+    isClassifier_(iConfig.getParameter<bool>("isClassifier"))  
   {
       edm::ParameterSet const & varsPSet = iConfig.getParameter<edm::ParameterSet>("variables");
       for (const std::string & vname : varsPSet.getParameterNamesForType<std::string>()) {
-      	  std::cout << vname << std::endl;
-	  funcs_.emplace_back(std::pair<std::string,StringObjectFunction<T>>(vname,varsPSet.getParameter<std::string>(vname)));
+	  funcs_.emplace_back(std::pair<std::string,StringObjectFunction<T,true>>(vname,varsPSet.getParameter<std::string>(vname)));
       }
 
       values_.resize(variablesOrder_.size());
@@ -75,6 +75,7 @@ class BaseMVAValueMapProducer : public edm::stream::EDProducer<> {
 	values_[positions_[var]]=val;
   }
   
+  static edm::ParameterSetDescription getDescription();
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
    private:
@@ -89,11 +90,12 @@ class BaseMVAValueMapProducer : public edm::stream::EDProducer<> {
 
   edm::EDGetTokenT<edm::View<T>> src_;
   std::map<std::string,size_t> positions_;
-  std::vector<std::pair<std::string,StringObjectFunction<T>>> funcs_;
+  std::vector<std::pair<std::string,StringObjectFunction<T,true>>> funcs_;
   std::vector<std::string> variablesOrder_;
   std::vector<float> values_;
   TMVA::Reader reader_;
   std::string name_;
+  bool isClassifier_;
 
 };
 
@@ -112,7 +114,7 @@ BaseMVAValueMapProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& i
 		values_[positions_[p.first]]=p.second(o);
 	}
         fillAdditionalVariables(o);
-	mvaOut.push_back(reader_.EvaluateRegression(name_)[0]);
+	mvaOut.push_back(isClassifier_ ? reader_.EvaluateMVA(name_) : reader_.EvaluateRegression(name_)[0]);
   }
   std::unique_ptr<edm::ValueMap<float>> mvaV(new edm::ValueMap<float>());
   edm::ValueMap<float>::Filler filler(*mvaV);
@@ -123,13 +125,30 @@ BaseMVAValueMapProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& i
 }
 
 template <typename T>
+edm::ParameterSetDescription
+BaseMVAValueMapProducer<T>::getDescription(){
+  edm::ParameterSetDescription desc;
+  desc.add<edm::InputTag>("src")->setComment("input physics object collection");
+  desc.add<std::vector<std::string>>("variablesOrder")->setComment("ordered list of MVA input variable names");
+  desc.add<std::string>("name")->setComment("output score variable name");
+  desc.add<bool>("isClassifier")->setComment("is a classifier discriminator");
+  edm::ParameterSetDescription variables;
+  variables.setAllowAnything();
+  desc.add<edm::ParameterSetDescription>("variables", variables)->setComment("list of input variable definitions");
+  desc.add<edm::FileInPath>("weightFile")->setComment("xml weight file");
+  return desc;
+}
+
+template <typename T>
 void
 BaseMVAValueMapProducer<T>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
-  //The following says we do not know what parameters are allowed so do no validation
-  // Please change this to state exactly what you do use, even if it is no parameters
-  edm::ParameterSetDescription desc;
-  desc.setUnknown();
-  descriptions.addDefault(desc);
+  edm::ParameterSetDescription desc = getDescription();
+  std::string modname;
+  if (typeid(T) == typeid(pat::Jet)) modname+="Jet";
+  else if (typeid(T) == typeid(pat::Muon)) modname+="Muon";
+  else if (typeid(T) == typeid(pat::Electron)) modname+="Ele";
+  modname+="BaseMVAValueMapProducer";
+  descriptions.add(modname,desc);
 }
 
 

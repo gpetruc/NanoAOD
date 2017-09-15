@@ -88,6 +88,14 @@ class BJetEnergyRegressionMVA : public BaseMVAValueMapProducer<pat::Jet> {
 		}
 
 	  }
+
+          static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+            edm::ParameterSetDescription desc = BaseMVAValueMapProducer<pat::Jet>::getDescription();
+            desc.add<edm::InputTag>("pvsrc")->setComment("primary vertices input collection");
+            desc.add<edm::InputTag>("svsrc")->setComment("secondary vertices input collection");
+            descriptions.add("BJetEnergyRegressionMVA",desc);
+          }
+
         private:
 	  const edm::EDGetTokenT<std::vector<reco::Vertex>> pvsrc_;
  	  edm::Handle<std::vector<reco::Vertex>> pvs_;
