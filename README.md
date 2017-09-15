@@ -7,6 +7,7 @@ The following will install the code, and process 3k events out of a TTbar relval
     cmsrel CMSSW_9_4_X_2017-09-14-2300 # or any newer IB
     cd CMSSW_9_4_X_2017-09-14-2300/src/
     cmsenv
+    git cms-merge-topic 20491
     git clone https://github.com/gpetruc/NanoAOD.git PhysicsTools/NanoAOD -b 94X
     scram b -j 4
     cd PhysicsTools/NanoAOD/test
