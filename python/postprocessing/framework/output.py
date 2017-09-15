@@ -53,7 +53,7 @@ class OutputTree:
         self._tree.Write()
 
 class FullOutput(OutputTree):
-    def __init__(self, inputFile, inputTree, outputFile, branchSelection = [], fullClone = False):
+    def __init__(self, inputFile, inputTree, outputFile, branchSelection = [], fullClone = False, provenance=False):
         outputFile.cd()
         inputTree.SetBranchStatus("*",1)
         branchList  = inputTree.GetListOfBranches()
@@ -67,10 +67,29 @@ class FullOutput(OutputTree):
         outputTree = inputTree.CopyTree('1') if fullClone else inputTree.CloneTree(0)
         OutputTree.__init__(self, outputFile, outputTree)
         self._inputTree = inputTree
-        # FIXME process the other TTrees
+        self._otherTrees = {}
+        self._otherObjects = {}
+        for k in inputFile.GetListOfKeys():
+            kn = k.GetName()
+            if kn == "Events":
+                continue # this we are doing
+            elif kn in ("MetaData", "ParameterSets"):
+                if provenance: self._otherTrees[tn] = inputFile.Get(kn).CopyTree('1')
+            elif kn in ("LuminosityBlocks", "Runs"):
+                self._otherTrees[kn] = inputFile.Get(kn).CopyTree('1')
+            elif k.GetClassName() == "TTree":
+                print "Not copying unknown tree %s" % kn
+            else:
+                self._otherObjects[kn] = inputFile.Get(kn)
     def fill(self):
-        self._inputTree.readAllBranches()
+        self._inputTree.GetEntry(self._inputTree.entry)
         self._tree.Fill()
+    def write(self):
+        OutputTree.write(self)
+        for t in self._otherTrees.itervalues():
+            t.Write()
+        for on,ov in self._otherObjects.iteritems():
+            self._file.WriteTObject(ov,on)
 
 class FriendOutput(OutputTree):
     def __init__(self, inputFile, inputTree, outputFile, treeName="Friends"):
