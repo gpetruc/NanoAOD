@@ -53,17 +53,10 @@ class OutputTree:
         self._tree.Write()
 
 class FullOutput(OutputTree):
-    def __init__(self, inputFile, inputTree, outputFile, branchSelection = [], fullClone = False, provenance=False):
+    def __init__(self, inputFile, inputTree, outputFile, branchSelection = None, fullClone = False, provenance = False):
         outputFile.cd()
-        inputTree.SetBranchStatus("*",1)
-        branchList  = inputTree.GetListOfBranches()
-        branchNames = [ branchList.At(i).GetName() for i in xrange(branchList.GetSize()) ]
-        for bre, stat in branchSelection:
-            if type(bre) == re._pattern_type:
-                for n in branchNames: 
-                    if re.match(bre, n): inputTree.SetBranchStatus(n, stat)
-            else:
-                inputTree.SetBranchStatus(n, stat)
+        if branchSelection: 
+            branchSelection.selectBranches(inputTree)
         outputTree = inputTree.CopyTree('1') if fullClone else inputTree.CloneTree(0)
         OutputTree.__init__(self, outputFile, outputTree)
         self._inputTree = inputTree
