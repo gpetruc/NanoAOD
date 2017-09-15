@@ -141,7 +141,7 @@ class SimpleFlatTableProducer : public SimpleFlatTableProducerBase<T, edm::View<
                     const auto & obj = (*prod)[i];
                     if (cut_(obj)) { 
                         selobjs.push_back(&obj); 
-                        if (!extvars_.empty()) selptrs.emplace_back(prod->ptrAt(0));
+                        if (!extvars_.empty()) selptrs.emplace_back(prod->ptrAt(i));
                     }
 		    if(selobjs.size()>=maxLen_) break;
                 }
