@@ -49,7 +49,7 @@ muonMVATTH= cms.EDProducer("MuonBaseMVAValueMapProducer",
         LepGood_jetBTagCSV = cms.string("?userCand('jetForLepJetVar').isNonnull()?max(userCand('jetForLepJetVar').bDiscriminator('pfCombinedInclusiveSecondaryVertexV2BJetTags'),0.0):-99.0"),
         LepGood_sip3d = cms.string("abs(dB('PV3D')/edB('PV3D'))"),
         LepGood_dxy = cms.string("log(abs(dB('PV2D')))"),
-        LepGood_dz = cms.string("log(0.001)"),#cms.string("log(abs(dB('PVDZ')))"),
+        LepGood_dz = cms.string("log(abs(dB('PVDZ')))"),
         LepGood_segmentCompatibility = cms.string("segmentCompatibility"),
     )
 )
@@ -63,8 +63,8 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     extension = cms.bool(False), # this is the main table for the muons
     variables = cms.PSet(CandVars,
         ptErr   = Var("bestTrack().ptError()", float, doc = "ptError of the muon track", precision=6),
-        #dz = Var("abs(dB('PVDZ'))",float,doc="dz (with sign) wrt first PV, in cm",precision=10), # correct also the definition of the lepton MVA input variable when uncommenting this!
-        #dzErr = Var("abs(edB('PVDZ'))",float,doc="dz uncertainty, in cm",precision=6),
+        dz = Var("abs(dB('PVDZ'))",float,doc="dz (with sign) wrt first PV, in cm",precision=10),
+        dzErr = Var("abs(edB('PVDZ'))",float,doc="dz uncertainty, in cm",precision=6),
         dxy = Var("dB('PV2D')",float,doc="dxy (with sign) wrt first PV, in cm",precision=10),
         dxyErr = Var("edB('PV2D')",float,doc="dxy uncertainty, in cm",precision=6),
         ip3d = Var("abs(dB('PV3D'))",float,doc="3D impact parameter wrt first PV, in cm",precision=10),

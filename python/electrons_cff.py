@@ -4,6 +4,7 @@ from math import ceil,log
 
 from PhysicsTools.SelectorUtils.tools.vid_id_tools import setupVIDSelection
 from RecoEgamma.ElectronIdentification.egmGsfElectronIDs_cff import *
+electronMVAValueMapProducer.srcMiniAOD = cms.InputTag("slimmedElectrons")
 egmGsfElectronIDs.physicsObjectIDs = cms.VPSet()
 egmGsfElectronIDs.physicsObjectSrc = cms.InputTag('slimmedElectrons')
 _electron_id_vid_modules=[
@@ -110,7 +111,7 @@ electronMVATTH= cms.EDProducer("EleBaseMVAValueMapProducer",
         LepGood_jetBTagCSV = cms.string("?userCand('jetForLepJetVar').isNonnull()?max(userCand('jetForLepJetVar').bDiscriminator('pfCombinedInclusiveSecondaryVertexV2BJetTags'),0.0):-99.0"),
         LepGood_sip3d = cms.string("abs(dB('PV3D')/edB('PV3D'))"),
         LepGood_dxy = cms.string("log(abs(dB('PV2D')))"),
-        LepGood_dz = cms.string("log(0.001)"),#cms.string("log(abs(dB('PVDZ')))"),
+        LepGood_dz = cms.string("log(abs(dB('PVDZ')))"),
         LepGood_mvaIdSpring16HZZ = cms.string("userFloat('mvaSpring16HZZ')"),
     )
 )
@@ -128,8 +129,8 @@ electronTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         #ptErr = Var("gsfTrack().ptError()",float,doc="pt error of the GSF track",precision=6),
         energyErr = Var("p4Error('P4_COMBINATION')*userFloat('eCorr')",float,doc="energy error of the cluster-track combination",precision=6),
         eCorr = Var("userFloat('eCorr')",float,doc="ratio of the calibrated energy/miniaod energy"),
-        #dz = Var("abs(dB('PVDZ'))",float,doc="dz (with sign) wrt first PV, in cm",precision=10), # correct also the definition of the lepton MVA input variable when uncommenting this!
-        #dzErr = Var("abs(edB('PVDZ'))",float,doc="dz uncertainty, in cm",precision=6),
+        dz = Var("abs(dB('PVDZ'))",float,doc="dz (with sign) wrt first PV, in cm",precision=10),
+        dzErr = Var("abs(edB('PVDZ'))",float,doc="dz uncertainty, in cm",precision=6),
         dxy = Var("dB('PV2D')",float,doc="dxy (with sign) wrt first PV, in cm",precision=10),
         dxyErr = Var("edB('PV2D')",float,doc="dxy uncertainty, in cm",precision=6),
         ip3d = Var("abs(dB('PV3D'))",float,doc="3D impact parameter wrt first PV, in cm",precision=10),
