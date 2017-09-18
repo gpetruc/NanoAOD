@@ -62,6 +62,7 @@ private:
   int m_compressionLevel;
   std::string m_compressionAlgorithm;
   bool m_writeProvenance;
+  bool m_fakeName; //crab workaround, remove after crab is fixed
   edm::ProcessHistoryRegistry m_processHistoryRegistry;
   edm::JobReport::Token m_jrToken;
   std::unique_ptr<TFile> m_file;
@@ -114,6 +115,7 @@ private:
   std::vector<SummaryTableOutputBranches> m_runTables;
 
   std::vector<std::pair<std::string,edm::EDGetToken>> m_nanoMetadata;
+
 };
 
 
@@ -136,6 +138,7 @@ NanoAODOutputModule::NanoAODOutputModule(edm::ParameterSet const& pset):
   m_compressionLevel(pset.getUntrackedParameter<int>("compressionLevel")),
   m_compressionAlgorithm(pset.getUntrackedParameter<std::string>("compressionAlgorithm")),
   m_writeProvenance(pset.getUntrackedParameter<bool>("saveProvenance", true)),
+  m_fakeName(pset.getUntrackedParameter<bool>("fakeNameForCrab", false)),
   m_processHistoryRegistry()
 {
 }
@@ -212,7 +215,7 @@ NanoAODOutputModule::openFile(edm::FileBlock const&) {
   m_jrToken = jr->outputFileOpened(m_fileName,
                                    m_logicalFileName,
                                    std::string(),
-                                   "NanoAODOutputModule",
+                                   m_fakeName?"PoolOutputModule":"NanoAODOutputModule",
                                    description().moduleLabel(),
                                    edm::createGlobalIdentifier(),
                                    std::string(),
