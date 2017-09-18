@@ -48,7 +48,7 @@ process.out1 = cms.OutputModule("NanoAODOutputModule",
     outputCommands = process.NanoAODEDMEventContent.outputCommands,
     compressionLevel = cms.untracked.int32(9),
     compressionAlgorithm = cms.untracked.string("LZMA"),
-    fakeName =cms.untracked.bool(True),
+    fakeNameForCrab =cms.untracked.bool(True),
 )
 process.end = cms.EndPath(process.out1) 
 #process.end = cms.EndPath(process.out+process.out1) 
