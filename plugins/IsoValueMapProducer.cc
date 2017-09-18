@@ -45,18 +45,19 @@ template <typename T>
 class IsoValueMapProducer : public edm::global::EDProducer<> {
    public:
   explicit IsoValueMapProducer(const edm::ParameterSet &iConfig):
-    src_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("src"))),
-    rho_(consumes<double>(iConfig.getParameter<edm::InputTag>("rho")))
+    src_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("src")))
   {
     if ((typeid(T) == typeid(pat::Muon)) || (typeid(T) == typeid(pat::Electron)) || typeid(T) == typeid(pat::IsolatedTrack)) {
       produces<edm::ValueMap<float>>("miniIsoChg");
       produces<edm::ValueMap<float>>("miniIsoAll");
       ea_miniiso_.reset(new EffectiveAreas((iConfig.getParameter<edm::FileInPath>("EAFile_MiniIso")).fullPath()));
+      rho_miniiso_ = consumes<double>(iConfig.getParameter<edm::InputTag>("rho_MiniIso"));
     }
     if ((typeid(T) == typeid(pat::Electron))) {
       produces<edm::ValueMap<float>>("PFIsoChg");
       produces<edm::ValueMap<float>>("PFIsoAll");
       ea_pfiso_.reset(new EffectiveAreas((iConfig.getParameter<edm::FileInPath>("EAFile_PFIso")).fullPath()));
+      rho_pfiso_ = consumes<double>(iConfig.getParameter<edm::InputTag>("rho_PFIso"));
     }
     if ((typeid(T) == typeid(pat::Photon))) {
       produces<edm::ValueMap<float>>("PFIsoChg");
@@ -67,6 +68,7 @@ class IsoValueMapProducer : public edm::global::EDProducer<> {
       ea_pfiso_chg_.reset(new EffectiveAreas((iConfig.getParameter<edm::FileInPath>("EAFile_PFIso_Chg")).fullPath()));
       ea_pfiso_neu_.reset(new EffectiveAreas((iConfig.getParameter<edm::FileInPath>("EAFile_PFIso_Neu")).fullPath()));
       ea_pfiso_pho_.reset(new EffectiveAreas((iConfig.getParameter<edm::FileInPath>("EAFile_PFIso_Pho")).fullPath()));
+      rho_pfiso_ = consumes<double>(iConfig.getParameter<edm::InputTag>("rho_PFIso"));
     }
   }
   ~IsoValueMapProducer() {}
@@ -80,7 +82,8 @@ class IsoValueMapProducer : public edm::global::EDProducer<> {
       // ----------member data ---------------------------
 
   edm::EDGetTokenT<edm::View<T>> src_;
-  edm::EDGetTokenT<double> rho_;
+  edm::EDGetTokenT<double> rho_miniiso_;
+  edm::EDGetTokenT<double> rho_pfiso_;
   edm::EDGetTokenT<edm::ValueMap<float>> mapIsoChg_;
   edm::EDGetTokenT<edm::ValueMap<float>> mapIsoNeu_;
   edm::EDGetTokenT<edm::ValueMap<float>> mapIsoPho_;
@@ -133,7 +136,7 @@ IsoValueMapProducer<T>::doMiniIso(edm::Event& iEvent) const{
   edm::Handle<edm::View<T>> src;
   iEvent.getByToken(src_, src);
   edm::Handle<double> rho;
-  iEvent.getByToken(rho_,rho);
+  iEvent.getByToken(rho_miniiso_,rho);
 
   unsigned nInput = src->size();
   
@@ -183,7 +186,7 @@ IsoValueMapProducer<pat::Electron>::doPFIsoEle(edm::Event& iEvent) const{
   edm::Handle<edm::View<pat::Electron>> src;
   iEvent.getByToken(src_, src);
   edm::Handle<double> rho;
-  iEvent.getByToken(rho_,rho);
+  iEvent.getByToken(rho_pfiso_,rho);
   
   unsigned nInput = src->size();
 
@@ -227,7 +230,7 @@ IsoValueMapProducer<pat::Photon>::doPFIsoPho(edm::Event& iEvent) const {
   edm::Handle<edm::View<pat::Photon>> src;
   iEvent.getByToken(src_, src);
   edm::Handle<double> rho;
-  iEvent.getByToken(rho_,rho);
+  iEvent.getByToken(rho_pfiso_,rho);
   edm::Handle<edm::ValueMap<float> > mapIsoChg;
   iEvent.getByToken(mapIsoChg_, mapIsoChg);
   edm::Handle<edm::ValueMap<float> > mapIsoNeu;
@@ -275,12 +278,13 @@ void
 IsoValueMapProducer<T>::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
   desc.add<edm::InputTag>("src")->setComment("input physics object collection");
-  desc.add<edm::InputTag>("rho")->setComment("rho to be used for effective-area based pileup subtraction");
   if ((typeid(T) == typeid(pat::Muon)) || (typeid(T) == typeid(pat::Electron)) || typeid(T) == typeid(pat::IsolatedTrack)) {
     desc.add<edm::FileInPath>("EAFile_MiniIso")->setComment("txt file containing effective areas to be used for mini-isolation pileup subtraction");
+    desc.add<edm::InputTag>("rho_MiniIso")->setComment("rho to be used for effective-area based mini-isolation pileup subtraction");
   }
   if ((typeid(T) == typeid(pat::Electron))) {
     desc.add<edm::FileInPath>("EAFile_PFIso")->setComment("txt file containing effective areas to be used for PF-isolation pileup subtraction for electrons");
+    desc.add<edm::InputTag>("rho_PFIso")->setComment("rho to be used for effective-area based PF-isolation pileup subtraction for electrons");
   }
   if ((typeid(T) == typeid(pat::Photon))) {
     desc.add<edm::InputTag>("mapIsoChg")->setComment("input charged PF isolation calculated in VID for photons");
@@ -289,6 +293,7 @@ IsoValueMapProducer<T>::fillDescriptions(edm::ConfigurationDescriptions& descrip
     desc.add<edm::FileInPath>("EAFile_PFIso_Chg")->setComment("txt file containing effective areas to be used for charged PF-isolation pileup subtraction for photons");
     desc.add<edm::FileInPath>("EAFile_PFIso_Neu")->setComment("txt file containing effective areas to be used for neutral PF-isolation pileup subtraction for photons");
     desc.add<edm::FileInPath>("EAFile_PFIso_Pho")->setComment("txt file containing effective areas to be used for photon PF-isolation pileup subtraction for photons");
+    desc.add<edm::InputTag>("rho_PFIso")->setComment("rho to be used for effective-area based PF-isolation pileup subtraction for photons");
   }
   std::string modname;
   if (typeid(T) == typeid(pat::Muon)) modname+="Muon";

@@ -37,7 +37,7 @@ bitmapVIDForPho = cms.EDProducer("PhoVIDNestedWPBitmapProducer",
 
 isoForPho = cms.EDProducer("PhoIsoValueMapProducer",
     src = cms.InputTag("slimmedPhotons"),
-    rho = cms.InputTag("fixedGridRhoFastjetAll"),
+    rho_PFIso = cms.InputTag("fixedGridRhoFastjetAll"),
     mapIsoChg = cms.InputTag("photonIDValueMapProducer:phoChargedIsolation"),
     mapIsoNeu = cms.InputTag("photonIDValueMapProducer:phoNeutralHadronIsolation"),
     mapIsoPho = cms.InputTag("photonIDValueMapProducer:phoPhotonIsolation"),
