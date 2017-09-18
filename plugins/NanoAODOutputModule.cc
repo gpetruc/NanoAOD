@@ -313,6 +313,8 @@ NanoAODOutputModule::fillDescriptions(edm::ConfigurationDescriptions& descriptio
         ->setComment("Algorithm used to compress data in the ROOT output file, allowed values are ZLIB and LZMA");
   desc.addUntracked<bool>("saveProvenance", true)
         ->setComment("Save process provenance information, e.g. for edmProvDump");
+  desc.addUntracked<bool>("fakeNameForCrab", false)
+        ->setComment("Change the OutputModule name in the fwk job report to fake PoolOutputModule. This is needed to run on cran (and publish) till crab is fixed");
 
   //replace with whatever you want to get from the EDM by default
   const std::vector<std::string> keep = {"drop *", "keep FlatTable_*_*_*"};
